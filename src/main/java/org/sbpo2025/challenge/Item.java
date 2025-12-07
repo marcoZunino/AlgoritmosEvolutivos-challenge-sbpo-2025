@@ -19,8 +19,22 @@ public class Item {
         this.orders.put(orderId, quantity);
     }
 
+    public int getOrderDemand(int orderId) {
+        return this.orders.getOrDefault(orderId, 0);
+    }
+    public int getTotalDemand() {
+        return this.orders.values().stream().mapToInt(Integer::intValue).sum();
+    }
+
     public void addAisle(int aisleId, int capacity) {
         this.aisles.put(aisleId, capacity);
+    }
+    public int getTotalCapacity() {
+        return this.aisles.values().stream().mapToInt(Integer::intValue).sum();
+    }
+
+    public int getAisleCapacity(int aisleId) {
+        return this.aisles.getOrDefault(aisleId, 0);
     }
 
     public void addStock(int stock) {
