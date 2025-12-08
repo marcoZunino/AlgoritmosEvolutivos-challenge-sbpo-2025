@@ -2,6 +2,7 @@ package org.sbpo2025.challenge;
 
 import org.apache.commons.lang3.time.StopWatch;
 import org.sbpo2025.challenge.binary_genetic_algorithm.BinaryGeneticAlgorithmRunner;
+import org.sbpo2025.challenge.genetic_algorithm.GeneticAlgorithmRunner;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -44,39 +45,7 @@ public class ChallengeSolver {
         
         Random random = new Random(1234);
 
-        // // Metodo 1 --- iterar sobre la cantidad de pasillos comenzando desde el minimo factible
-        // // resolver buscando la cantidad minima de pasillos e iterar desde ahi ------------
-        // bestSolution = solveMinimumFeasibleAisles(bestSolution, stopWatch);
-        // if (bestSolution.partialSolution() == null) {
-        //     System.out.println("No feasible solution found, stopping.");
-        //     return null; // No feasible solution found (for the whole problem)
-        // }
-        // int minimumAisles = bestSolution.partialSolution().aisles().size();
-        // bestSolution = solveWithFixedAisles(bestSolution, stopWatch, minimumAisles);
-        // // start iterating with minimumAisles
-        // // -------------------------------------------------------------------------------
-
-        // // Metodo 2 --- iterar sobre la cantidad de pasillos desde 1 hasta el total
-        // // -> generalizado en Metodo 1
-        // bestSolution = solveWithFixedAisles(bestSolution, stopWatch);
-        // // start with 1 aisle
-        // // -------------------------------------------------------------------------------
-
-
-        // // Metodo 4 --- iterar sobre la cantidad de pasillos, seleccionando los pasillos con mayor capacidad
-        // // resolver buscando la cantidad minima de pasillos e iterar desde ahi ------------
-        // // -> parejo en valor objetivo con los metodos aleatorios, pero usando todo el tiempo disponible
-        // // bestSolution = solveMinimumFeasibleAisles(bestSolution, stopWatch);
-        // // if (bestSolution.partialSolution() == null) {
-        // //     System.out.println("No feasible solution found, stopping.");
-        // //     return null; // No feasible solution found (for the whole problem)
-        // // }
-        // // int minimumAisles = bestSolution.partialSolution().aisles().size();
-        // int minimumAisles = 1;
-        // bestSolution = solveWithSelectedAisles(bestSolution, stopWatch, minimumAisles);
-        // // start iterating with minimumAisles
-        // // -------------------------------------------------------------------------------
-
+    
         // // Metodo 5 --- seleccionar ordenes al azar y minimizar pasillos necesarios
         // // -> algoritmo greedy es mas eficiente, la seleccion de ordenes es mas inteligente
         // int maxIterations = 100;
@@ -98,16 +67,6 @@ public class ChallengeSolver {
         // bestSolution = solveRandomGreedySelection(bestSolution, stopWatch, maxIterations);
         // // -------------------------------------------------------------------------------
         
-        // // Metodo 7 -- usar preseleccion de pasillos (fija) y de ordenes (single-aisle) para poder agregar ordenes multi-pasillo
-        // // -> no sirve para instancias con solo ordenes single-aisle
-        // // -> necesita solucion previa para otras instancias ... (pendiente testear)
-        // bestSolution = solveWithPreSelection(bestSolution, stopWatch);
-        // // -------------------------------------------------------------------------------
-
-        // // Metodo 7.1  -- usar preseleccion de ordenes y minimizar pasillos
-        // // -> ejecuta rapido, pero no mejora la solucion
-        // bestSolution = solveWithSelectedOrders(bestSolution, stopWatch);
-        // // -------------------------------------------------------------------------------
 
         // // Metodo 8 --- algoritmo greedy para seleccionar ordenes sobre un subconjunto de pasillos
         // // desde minimumAisles hacia abajo
@@ -156,7 +115,7 @@ public class ChallengeSolver {
         // // -------------------------------------------------------------------------------
 
 
-        // #########################################################################################
+        // // #########################################################################################
         // // Metodo Final Completo
         // // 1) Estimar valor objetivo para cada cantidad de pasillos
         // // greedy sobre un super-pasillo ficticio compuesto por un subconjunto de "minimumAisles" pasillos
@@ -238,7 +197,7 @@ public class ChallengeSolver {
         //             break;
         //         }
         //         System.out.println("\n-> Key: " + key + ", Value: " + candidateAisleNumbers.get(key));
-        //         if (meanOrderItems > 1) {
+        //         if (calculateMeanOrderSize(IntStream.range(0, orders.size()).boxed().collect(Collectors.toSet()))[1] > 1) {
         //             bestSolution = solveWithFixedAisles(bestSolution, stopWatch, key, key); // metodo exacto para key pasillos
         //         } else {
         //             bestSolution = solveWithAisleSubset(bestSolution, stopWatch,
@@ -251,12 +210,14 @@ public class ChallengeSolver {
 
 
         // Genetic Algorithm
-        int gaPopulationSize = 10;
-        int generations = 5;
-        int maxIterations = 2;
+        int gaPopulationSize = 100;
+        int generations = 100;
+        int maxIterations = 10;
         for (int i=0; i<maxIterations; i++) {
             System.out.println("\n-> Genetic Algorithm iteration " + (i+1));
-            bestSolution = solveGeneticAlgorithm(bestSolution, stopWatch, gaPopulationSize, generations*gaPopulationSize, random);
+            bestSolution = solveGeneticAlgorithm(bestSolution, stopWatch, gaPopulationSize, generations*gaPopulationSize, random
+                , true
+                );
         }
 
         
@@ -278,27 +239,29 @@ public class ChallengeSolver {
 
     // solving methods
 
-    protected PartialResult solveGeneticAlgorithm(PartialResult bestSolution, StopWatch stopWatch, int populationSize, int maxEvaluations, Random random) {
+    protected PartialResult solveGeneticAlgorithm(PartialResult bestSolution, StopWatch stopWatch, int populationSize, int maxEvaluations, Random random, boolean binaryEncoding) {
         System.out.println("\n>> solveGeneticAlgorithm");
         System.out.println("Remaining time: " + getRemainingTime(stopWatch) + " seconds");
 
         // solve
         System.out.println("Running Genetic Algorithm");
-        ChallengeSolution gaSolution = BinaryGeneticAlgorithmRunner.run(
-            orders, aisles, items, waveSizeLB, waveSizeUB,
-            populationSize, maxEvaluations, random);
+        ChallengeSolution gaSolution;
+
+        if (binaryEncoding) {
+            gaSolution = BinaryGeneticAlgorithmRunner.run(
+                orders, aisles, items, waveSizeLB, waveSizeUB,
+                populationSize, maxEvaluations, random);
+        } else {
+            gaSolution = GeneticAlgorithmRunner.run(
+                orders, aisles, items, waveSizeLB, waveSizeUB,
+                populationSize, maxEvaluations, random);
+        }
 
         if (gaSolution == null) {
             System.out.println("No feasible solution found");
             return bestSolution;
         } // no feasible solution found
 
-        // // show solution
-        // Set<Integer> selectedOrders = getSelectedOrders(gaSolution);
-        // Set<Integer> selectedAisles = getVisitedAisles(gaSolution);
-        // System.out.println("Selected orders = " + selectedOrders);
-        // System.out.println("Selected aisles = " + selectedAisles);
-        // double objValue = computeObjectiveValue(gaSolution);
 
         double objValue = computeObjectiveFunction(gaSolution);
         System.out.println("Objective value = " + objValue);
@@ -312,6 +275,10 @@ public class ChallengeSolver {
         }
 
         return bestSolution;
+    }
+    protected PartialResult solveGeneticAlgorithm(PartialResult bestSolution, StopWatch stopWatch, int populationSize, int maxEvaluations, Random random) {
+        return solveGeneticAlgorithm(bestSolution, stopWatch, populationSize, maxEvaluations, random, false);
+        // default value for binaryEncoding is false
     }
 
 
@@ -1233,6 +1200,9 @@ public class ChallengeSolver {
         System.out.println(String.format("Total items: %d", nItems));
         System.out.println(String.format("Total orders: %d", orders.size()));
         System.out.println(String.format("Total aisles: %d", aisles.size()));
+
+        System.out.println(String.format("Wave size bounds: %d - %d", waveSizeLB, waveSizeUB));
+
     }
 
     protected PartialResult generatePartialResult(Set<Integer> selectedOrders, Set<Integer> selectedAisles) {

@@ -1,16 +1,17 @@
-package org.sbpo2025.challenge.binary_genetic_algorithm;
+package org.sbpo2025.challenge.genetic_algorithm;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
-import java.util.Arrays;
+import java.util.stream.IntStream;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import org.sbpo2025.challenge.Item;
-import org.uma.jmetal.problem.binaryproblem.impl.AbstractBinaryProblem;
-import org.uma.jmetal.solution.binarysolution.BinarySolution;
+import org.uma.jmetal.problem.AbstractGenericProblem;
 
-public class BinaryWavePickingProblem extends AbstractBinaryProblem {
+public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
     protected List<Map<Integer, Integer>> orders;
     protected List<Map<Integer, Integer>> aisles;
@@ -22,7 +23,7 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
     protected double distanceLambda;
     protected double waveSizePenalty;
 
-    public BinaryWavePickingProblem(List<Map<Integer, Integer>> orders,
+    public WavePickingProblem(List<Map<Integer, Integer>> orders,
       List<Map<Integer, Integer>> aisles,
       List<Item> items,
       int waveSizeLB,
@@ -43,7 +44,7 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
 
       this.setNumberOfVariables(2);
       this.setNumberOfObjectives(1);
-      this.setName("BinaryWavePickingProblem");
+      this.setName("WavePickingProblem");
       
     }
 
@@ -55,13 +56,9 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         this.waveSizePenalty = penalty;
     }
 
-    @Override
-    public List<Integer> getListOfBitsPerVariable() {
-        return Arrays.asList(orders.size(), aisles.size());
-    }
 
     @Override
-    public void evaluate(BinarySolution solution) {
+    public void evaluate(WaveSolution solution) {
         // Evaluation logic to be implemented
         if (!feasible(solution)) {
             feasibilityCorrection(solution);
@@ -80,10 +77,16 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         System.out.println(solution.getObjective(0));
     }
 
-    private double computeObjectiveValue(BinarySolution solution) {
+    @Override
+    public WaveSolution createSolution() {
+        return new WaveSolution(getRandomSubset(IntStream.range(0, orders.size()).boxed().collect(Collectors.toList())),
+                                getRandomSubset(IntStream.range(0, aisles.size()).boxed().collect(Collectors.toList())));
+    }
+
+    private double computeObjectiveValue(WaveSolution solution) {
         
-        List<Integer> selectedOrders = getSelectedOrders(solution);
-        List<Integer> visitedAisles = getVisitedAisles(solution);
+        List<Integer> selectedOrders = solution.getOrders();
+        List<Integer> visitedAisles = solution.getAisles();
         if (selectedOrders == null || visitedAisles == null || selectedOrders.isEmpty() || visitedAisles.isEmpty()) {
             return 0.0;
         }
@@ -101,9 +104,9 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         return (double) totalUnitsPicked / numVisitedAisles;
     }
 
-    private int waveSizePenalization(BinarySolution solution) {
+    private int waveSizePenalization(WaveSolution solution) {
         
-        int totalUnitsPicked = totalDemand(getSelectedOrders(solution));
+        int totalUnitsPicked = totalDemand(solution.getOrders());
 
         if (totalUnitsPicked < waveSizeLB) {
             return waveSizeLB - totalUnitsPicked;
@@ -114,11 +117,11 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         }
     }
 
-    private double computeSharingFunction(BinarySolution solution) {
+    private double computeSharingFunction(WaveSolution solution) {
         
         // sum of sharing distances between the solution and all others in the population
         double sharingSum = 1.0; // include the solution itself
-        // for (BinarySolution otherSolution : /* population */) {
+        // for (WaveSolution otherSolution : /* population */) {
         //     if (otherSolution != solution) {
         //         sharingSum += 1 - sharingDistance(solution, otherSolution);
         //     }
@@ -127,7 +130,7 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         
     }
 
-    private double sharingDistance(BinarySolution solution1, BinarySolution solution2) {
+    private double sharingDistance(WaveSolution solution1, WaveSolution solution2) {
 
         int sharedOrders = 0; // TODO
         int sharedAisles = 0; // TODO
@@ -137,27 +140,27 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
     }
 
     
-    private void feasibilityCorrection(BinarySolution solution) {
+    private void feasibilityCorrection(WaveSolution solution) {
 
-        // int demand = totalDemand(getSelectedOrders(solution));
+        // int demand = totalDemand(solution.getOrders());
         // while (demand < waveSizeUB) {
         //     // add random order
         //     int o = random.nextInt(orders.size());
-        //     if (!solution.getVariable(0).get(o) && (availableCapacity(List.of(o), getVisitedAisles(solution)))) {
+        //     if (!solution.getVariable(0).get(o) && (availableCapacity(List.of(o), solution.getAisles()))) {
         //         solution.getVariable(0).set(o, true);
         //         demand += totalDemand(List.of(o));
         //     }
         // }
         for (Item item : items) {
-            int itemDemand = totalDemand(getSelectedOrders(solution), List.of(item));
-            int itemCapacity = totalCapacity(getVisitedAisles(solution), List.of(item));
+            int itemDemand = totalDemand(solution.getOrders(), List.of(item));
+            int itemCapacity = totalCapacity(solution.getAisles(), List.of(item));
             while (itemDemand > itemCapacity) {
                 // remove random order that contains item i
                 List<Integer> itemOrders = item.orders.keySet().stream()
-                    .filter(o -> solution.getVariable(0).get(o))
+                    .filter(o -> solution.getOrders().contains(o))
                     .collect(Collectors.toList());
                 int oToRemove = itemOrders.get(random.nextInt(itemOrders.size()));
-                solution.getVariable(0).set(oToRemove, false);
+                solution.removeOrder(oToRemove);
                 itemDemand -= item.getOrderDemand(oToRemove);
                 // demand -= totalDemand(List.of(oToRemove));
 
@@ -165,23 +168,23 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         }
         // while (demand > waveSizeUB) {
         //     // remove random order
-        //     List<Integer> selectedOrders = getSelectedOrders(solution).stream().collect(Collectors.toList());
+        //     List<Integer> selectedOrders = solution.getOrders().stream().collect(Collectors.toList());
         //     if (selectedOrders.isEmpty()) {
         //         break;
         //     }
         //     int oToRemove = selectedOrders.get(random.nextInt(selectedOrders.size()));
-        //     solution.getVariable(0).set(oToRemove, false);
+        //     solution.removeOrder(oToRemove);
         //     demand -= totalDemand(List.of(oToRemove));
         // }
 
         // removeUnusedAisles(solution);
 
-        int capacity = totalCapacity(getVisitedAisles(solution));
+        int capacity = totalCapacity(solution.getAisles());
         while (capacity < waveSizeLB) {
             // add random aisle
             int a = random.nextInt(aisles.size());
-            if (!solution.getVariable(1).get(a)) {
-                solution.getVariable(1).set(a, true);
+            if (!solution.getAisles().contains(a)) {
+                solution.addAisle(a);
                 capacity += totalCapacity(List.of(a));
             }
         }
@@ -189,10 +192,10 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         
     }
 
-    private void removeUnusedAisles(BinarySolution solution) {
+    private void removeUnusedAisles(WaveSolution solution) {
 
-        List<Integer> selectedOrders = getSelectedOrders(solution);
-        List<Integer> visitedAisles = getVisitedAisles(solution);
+        List<Integer> selectedOrders = solution.getOrders();
+        List<Integer> visitedAisles = solution.getAisles();
 
         for (int aisle : visitedAisles) {
             // Check if removing this aisle still keeps the solution feasible
@@ -201,7 +204,7 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
                 .collect(Collectors.toList());
             if (availableCapacity(selectedOrders, aislesWithoutCurrent)) {
                 // Remove the aisle
-                solution.getVariable(1).set(aisle, false);
+                solution.removeAisle(aisle);
                 removeUnusedAisles(solution);
                 break;
             }
@@ -209,24 +212,8 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
 
     }
 
-    private boolean feasible(BinarySolution solution) {
-        return availableCapacity(getSelectedOrders(solution), getVisitedAisles(solution));
-    }
-
-    public List<Integer> getSelectedOrders(BinarySolution solution) {
-        // getVariable(0) returns a BinarySet (bitstring)
-        return solution.getVariable(0)
-                   .stream()                 // stream over indices of set bits
-                   .boxed()                  // convert IntStream to Stream<Integer>
-                   .collect(Collectors.toList()); // collect into a List<Integer>
-    }
-
-    public List<Integer> getVisitedAisles(BinarySolution solution) {
-        // getVariable(0) returns a BinarySet (bitstring)
-        return solution.getVariable(1)
-                   .stream()                 // stream over indices of set bits
-                   .boxed()                  // convert IntStream to Stream<Integer>
-                   .collect(Collectors.toList()); // collect into a List<Integer>
+    private boolean feasible(WaveSolution solution) {
+        return availableCapacity(solution.getOrders(), solution.getAisles());
     }
 
     private int totalCapacity(List<Integer> aislesList, List<Item> itemsList) {
@@ -268,6 +255,19 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
             }
         }
         return true;
+    }
+
+    private List<Integer> getRandomSubset(List<Integer> set) {
+        
+        if (set.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Integer> subset = new ArrayList<>(set); // copy the original set
+        Collections.shuffle(subset, random);  // shuffle the copy
+
+        int ordersCount = random.nextInt(set.size()) + 1; // at least one element
+        return new ArrayList<>(subset.subList(0, ordersCount));  // return the first 'ordersCount' elements
     }
 
 
