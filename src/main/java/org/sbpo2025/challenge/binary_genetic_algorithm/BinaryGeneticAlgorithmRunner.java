@@ -42,14 +42,7 @@ public class BinaryGeneticAlgorithmRunner {
             problem.getSelectedOrders(result).stream().collect(Collectors.toSet()),
             problem.getVisitedAisles(result).stream().collect(Collectors.toSet())
         ); // return best solution
-        
+
     }
 
-    // // Example usage inside main
-    // public static void main(String[] args) {
-    //     ChallengeSolution best = run(100, 100, 10000);
-
-    //     System.out.println("Best solution bitstring: " + best.getVariableValue(0));
-    //     System.out.println("Number of ones: " + -best.getObjective(0));
-    // }
 }

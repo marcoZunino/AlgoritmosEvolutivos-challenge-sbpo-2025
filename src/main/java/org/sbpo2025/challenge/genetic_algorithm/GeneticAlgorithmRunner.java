@@ -1,6 +1,7 @@
 package org.sbpo2025.challenge.genetic_algorithm;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -8,12 +9,16 @@ import java.util.stream.Collectors;
 
 import org.sbpo2025.challenge.ChallengeSolution;
 import org.sbpo2025.challenge.Item;
+
 import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.GenerationalGeneticAlgorithm;
 import org.uma.jmetal.operator.crossover.CrossoverOperator;
 import org.uma.jmetal.operator.mutation.MutationOperator;
-import org.uma.jmetal.operator.selection.impl.BinaryTournamentSelection;
+import org.uma.jmetal.operator.selection.SelectionOperator;
 import org.uma.jmetal.util.JMetalException;
+import org.uma.jmetal.util.SolutionListUtils;
+import org.uma.jmetal.util.SolutionUtils;
 import org.uma.jmetal.util.checking.Check;
+import org.uma.jmetal.util.comparator.DominanceComparator;
 import org.uma.jmetal.util.evaluator.SolutionListEvaluator;
 import org.uma.jmetal.util.evaluator.impl.SequentialSolutionListEvaluator;
 
@@ -31,7 +36,7 @@ public class GeneticAlgorithmRunner {
 
         CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(0.9, random, aisles.size());
         MutationOperator<WaveSolution> mutation = new BitFlipMutation(1.0/(orders.size() + aisles.size()), random, orders.size(), aisles.size());
-        BinaryTournamentSelection<WaveSolution> selection = new BinaryTournamentSelection<>();
+        SelectionOperator<List<WaveSolution>,WaveSolution> selection = new BinaryTournamentSelection(random);
         SolutionListEvaluator<WaveSolution> evaluator = new SequentialSolutionListEvaluator<>();
 
         GenerationalGeneticAlgorithm<WaveSolution> algorithm = new GenerationalGeneticAlgorithm<>(
@@ -177,5 +182,37 @@ public class GeneticAlgorithmRunner {
 
     }
 
+    private static class BinaryTournamentSelection implements SelectionOperator<List<WaveSolution>,WaveSolution> {
+        
+        private Comparator<WaveSolution> comparator;
+        private final int n_arity;
+        private Random random;
+
+        public BinaryTournamentSelection(Random random) {
+            this.comparator = new DominanceComparator<WaveSolution>();
+            this.random = random;
+            this.n_arity = 2;
+        }
+
+        @Override
+        public WaveSolution execute(List<WaveSolution> solutionList) {
+            Check.isNotNull(solutionList);
+            Check.collectionIsNotEmpty(solutionList);
+
+            WaveSolution result;
+            if (solutionList.size() == 1) {
+            result = solutionList.get(0);
+            } else {
+            result = SolutionListUtils.selectNRandomDifferentSolutions(1, solutionList, (low, up) -> random.nextInt(low, up)).get(0);
+            int count = 1; // at least 2 solutions are compared
+            do {
+                WaveSolution candidate = SolutionListUtils.selectNRandomDifferentSolutions(1, solutionList, (low, up) -> random.nextInt(low, up)).get(0);
+                result = SolutionUtils.getBestSolution(result, candidate, comparator) ;
+            } while (++count < this.n_arity);
+            }
+
+            return result;
+        }
+    }
 }
 
