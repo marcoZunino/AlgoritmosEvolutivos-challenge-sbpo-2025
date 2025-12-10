@@ -1,5 +1,6 @@
 package org.sbpo2025.challenge.genetic_algorithm;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.uma.jmetal.solution.AbstractSolution;
@@ -15,7 +16,7 @@ public class WaveSolution extends AbstractSolution<List<Integer>> {
 
   @Override
   public WaveSolution copy() {
-    return new WaveSolution(this.getVariable(0), this.getVariable(1));
+    return new WaveSolution(new ArrayList<>(this.getVariable(0)), new ArrayList<>(this.getVariable(1)));
   }
 
   @Override

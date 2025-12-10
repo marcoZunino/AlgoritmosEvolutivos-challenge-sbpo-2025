@@ -25,10 +25,13 @@ public class BinaryGeneticAlgorithmRunner {
         BinaryWavePickingProblem problem = new BinaryWavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
         // problem.setDistanceLambda(lambda);
         // problem.setWaveSizePenalty(10);
+        
+        double mutationProbability = 1.0/(orders.size() + aisles.size());        
+        // mutationProbability = 0.1;
+        double crossoverProbability = 0.9;
 
-
-        SinglePointCrossover crossover = new SinglePointCrossover(0.9);
-        BitFlipMutation mutation = new BitFlipMutation(1.0 / problem.getTotalNumberOfBits());
+        SinglePointCrossover crossover = new SinglePointCrossover(crossoverProbability);
+        BitFlipMutation mutation = new BitFlipMutation(mutationProbability);
         BinaryTournamentSelection<BinarySolution> selection = new BinaryTournamentSelection<>();
         SolutionListEvaluator<BinarySolution> evaluator = new SequentialSolutionListEvaluator<>();
 

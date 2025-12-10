@@ -1,7 +1,6 @@
 package org.sbpo2025.challenge.genetic_algorithm;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -16,9 +15,7 @@ import org.uma.jmetal.operator.mutation.MutationOperator;
 import org.uma.jmetal.operator.selection.SelectionOperator;
 import org.uma.jmetal.util.JMetalException;
 import org.uma.jmetal.util.SolutionListUtils;
-import org.uma.jmetal.util.SolutionUtils;
 import org.uma.jmetal.util.checking.Check;
-import org.uma.jmetal.util.comparator.DominanceComparator;
 import org.uma.jmetal.util.evaluator.SolutionListEvaluator;
 import org.uma.jmetal.util.evaluator.impl.SequentialSolutionListEvaluator;
 
@@ -33,10 +30,14 @@ public class GeneticAlgorithmRunner {
         // problem.setDistanceLambda(lambda);
         // problem.setWaveSizePenalty(10);
 
+        double mutationProbability = 1.0/(orders.size() + aisles.size());
+        // mutationProbability = 0.1;
+        double crossoverProbability = 0.9;
 
-        CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(0.9, random, aisles.size());
-        MutationOperator<WaveSolution> mutation = new BitFlipMutation(1.0/(orders.size() + aisles.size()), random, orders.size(), aisles.size());
+        CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size());
+        MutationOperator<WaveSolution> mutation = new BitFlipMutation(mutationProbability, random, orders.size(), aisles.size());
         SelectionOperator<List<WaveSolution>,WaveSolution> selection = new BinaryTournamentSelection(random);
+        // SelectionOperator<List<WaveSolution>,WaveSolution> selection = new org.uma.jmetal.operator.selection.impl.BinaryTournamentSelection<>();
         SolutionListEvaluator<WaveSolution> evaluator = new SequentialSolutionListEvaluator<>();
 
         GenerationalGeneticAlgorithm<WaveSolution> algorithm = new GenerationalGeneticAlgorithm<>(
@@ -57,14 +58,16 @@ public class GeneticAlgorithmRunner {
         private double crossoverProbability;
         private Random random;
         private Integer totalAislesNumber;
+        private Integer totalOrdersNumber;
 
-        public SinglePointCrossover(double crossoverProbability, Random random, Integer totalAislesNumber) {
+        public SinglePointCrossover(double crossoverProbability, Random random, Integer totalAislesNumber, Integer totalOrdersNumber) {
             if (crossoverProbability < 0) {
                 throw new JMetalException("Crossover probability is negative: " + crossoverProbability);
             }
             this.crossoverProbability = crossoverProbability;
             this.random = random;
             this.totalAislesNumber = totalAislesNumber;
+            this.totalOrdersNumber = totalOrdersNumber;
         }
 
         @Override
@@ -75,44 +78,78 @@ public class GeneticAlgorithmRunner {
             return doCrossover(crossoverProbability, parents);
         }
 
-        public List<WaveSolution> doCrossover(double probability, List<WaveSolution> parents) {
+        private List<WaveSolution> doCrossover(double probability, List<WaveSolution> parents) {
             List<WaveSolution> offspring = new ArrayList<>(2);
-            offspring.add((WaveSolution) parents.get(0).copy());
-            offspring.add((WaveSolution) parents.get(1).copy());
+            offspring.add(parents.get(0).copy());
+            offspring.add(parents.get(1).copy());
 
             if (random.nextDouble() < probability) {
 
                 // 1. Calculate the point to make the crossover
-                int crossoverPoint = random.nextInt(totalAislesNumber-1); // between 0 and totalBits-1
+                int crossoverPoint = random.nextInt(totalOrdersNumber+totalAislesNumber); // between [0 and totalBits)
 
-                // 2. Swap aisles from parents after the crossover point
-                for (int k = 0; k < 2; k++) { // for each parent
-                    for (int i = 0; i < parents.get(k).getAisles().size(); i++) { // for each aisle in parent k
-                        int aisleId = parents.get(k).getAisles().get(i);
-                        if (aisleId > crossoverPoint && // aisle is after crossover point
-                            !parents.get(1-k).getAisles().contains(aisleId) // skip if aisle is already in both parents
-                        ) {
-                            offspring.get(k).removeAisle(aisleId);
-                            offspring.get(1-k).addAisle(aisleId);
-                            // swap aisle between offspring
-                        }
-                    }
-                }
+                // 0, 1, 2, ..... orders-1, orders, orders+1, ...., orders+aisles-1
 
-                // 3. Set orders subset as the union of both parents' orders
-                for (int k = 0; k < 2; k++) { // for each parent
-                    for (int i = 0; i < parents.get(1-k).getOrders().size(); i++) { // for each order in parent 1-k
-                        int orderId = parents.get(1-k).getOrders().get(i);
-                        if (!parents.get(k).getOrders().contains(orderId)) {
-                            offspring.get(k).addOrder(orderId);
-                            // add missing orders to offspring
-                        }
-                    }
+                if (crossoverPoint < totalOrdersNumber) {
+                    // 2.1 Swap orders from parents after the crossover point
+                    swapOrders(parents, offspring, crossoverPoint);
+                } else {
+                    // 2.2 Swap aisles from parents after the crossover point
+                    swapAisles(parents, offspring, crossoverPoint-totalOrdersNumber-1);
+                    // if crossover = #orders => crossoverPoint-totalOrdersNumber-1 = -1 => exchange aisles and orders subsets
                 }
+                
+                // 3 Set orders subset as the union of both parents' orders
+                // computeOrdersUnion(parents, offspring);
 
             }
 
             return offspring;
+        }
+
+        private void swapAisles(List<WaveSolution> parents, List<WaveSolution> offspring, int crossoverPoint) {
+
+            for (int k = 0; k < 2; k++) { // for each parent
+                for (int i = 0; i < parents.get(k).getAisles().size(); i++) { // for each aisle in parent k
+                    int aisleId = parents.get(k).getAisles().get(i);
+                    if (aisleId > crossoverPoint && // aisle is after crossover point
+                        !parents.get(1-k).getAisles().contains(aisleId) // skip if aisle is already in both parents
+                    ) {
+                        offspring.get(k).removeAisle(aisleId);
+                        offspring.get(1-k).addAisle(aisleId);
+                            // swap aisle between offspring
+                    }
+                }
+            }
+        }
+
+        private void swapOrders(List<WaveSolution> parents, List<WaveSolution> offspring, int crossoverPoint) {
+
+            for (int k = 0; k < 2; k++) { // for each parent
+                for (int i = 0; i < parents.get(k).getOrders().size(); i++) { // for each aisle in parent k
+                    int orderId = parents.get(k).getOrders().get(i);
+                    if (orderId > crossoverPoint && // aisle is after crossover point
+                        !parents.get(1-k).getOrders().contains(orderId) // skip if aisle is already in both parents
+                    ) {
+                        offspring.get(k).removeOrder(orderId);
+                        offspring.get(1-k).addOrder(orderId);
+                            // swap aisle between offspring
+                    }
+                }
+            }
+        }
+
+        private void computeOrdersUnion(List<WaveSolution> parents, List<WaveSolution> offspring) {
+
+            for (int k = 0; k < 2; k++) { // for each parent
+                for (int i = 0; i < parents.get(1-k).getOrders().size(); i++) { // for each order in parent 1-k
+                    int orderId = parents.get(1-k).getOrders().get(i);
+                    if (!parents.get(k).getOrders().contains(orderId)) {
+                        offspring.get(k).addOrder(orderId);
+                            // add missing orders to offspring
+                    }
+                }
+            }
         }
 
         @Override
@@ -183,15 +220,10 @@ public class GeneticAlgorithmRunner {
     }
 
     private static class BinaryTournamentSelection implements SelectionOperator<List<WaveSolution>,WaveSolution> {
-        
-        private Comparator<WaveSolution> comparator;
-        private final int n_arity;
         private Random random;
 
         public BinaryTournamentSelection(Random random) {
-            this.comparator = new DominanceComparator<WaveSolution>();
             this.random = random;
-            this.n_arity = 2;
         }
 
         @Override
@@ -201,14 +233,20 @@ public class GeneticAlgorithmRunner {
 
             WaveSolution result;
             if (solutionList.size() == 1) {
-            result = solutionList.get(0);
+                result = solutionList.get(0);
             } else {
-            result = SolutionListUtils.selectNRandomDifferentSolutions(1, solutionList, (low, up) -> random.nextInt(low, up)).get(0);
-            int count = 1; // at least 2 solutions are compared
-            do {
-                WaveSolution candidate = SolutionListUtils.selectNRandomDifferentSolutions(1, solutionList, (low, up) -> random.nextInt(low, up)).get(0);
-                result = SolutionUtils.getBestSolution(result, candidate, comparator) ;
-            } while (++count < this.n_arity);
+                List<WaveSolution> candidates = SolutionListUtils.selectNRandomDifferentSolutions(2, solutionList, (low, up) -> random.nextInt(low, up));
+
+                System.out.println("Tournament between solutions with objectives: " + 
+                    candidates.get(0).getObjective(0) + " and " + candidates.get(1).getObjective(0)
+                );
+
+                if (candidates.get(0).getObjective(0) < candidates.get(1).getObjective(0)) {
+                    result = candidates.get(0);
+                } else {
+                    result = candidates.get(1);
+                }
+                
             }
 
             return result;
