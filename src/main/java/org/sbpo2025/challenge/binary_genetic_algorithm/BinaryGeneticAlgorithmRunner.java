@@ -6,6 +6,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.sbpo2025.challenge.ChallengeSolution;
+import org.sbpo2025.challenge.ChallengeSolver;
 import org.sbpo2025.challenge.Item;
 import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.GenerationalGeneticAlgorithm;
 import org.uma.jmetal.operator.crossover.impl.SinglePointCrossover;
@@ -17,18 +18,27 @@ import org.uma.jmetal.util.evaluator.impl.SequentialSolutionListEvaluator;
 
 public class BinaryGeneticAlgorithmRunner {
 
-    public static ChallengeSolution run(
-        List<Map<Integer, Integer>> orders, List<Map<Integer, Integer>> aisles,
-        List<Item> items, int waveSizeLB, int waveSizeUB,
-        int populationSize, int maxEvaluations, Random random) {
+    public static ChallengeSolution run(ChallengeSolver solver, Map<String, Object> params) {
+
+        List<Map<Integer, Integer>> orders = solver.orders;
+        List<Map<Integer, Integer>> aisles = solver.aisles;
+        List<Item> items = solver.items;
+        int waveSizeLB = solver.waveSizeLB;
+        int waveSizeUB = solver.waveSizeUB;
+        
+        Random random = new Random((long) params.getOrDefault("randomSeed", 1234L));
+        double mutationProbability = (double) params.getOrDefault("mutationProbability", 1.0/(orders.size() + aisles.size()));
+        double crossoverProbability = (double) params.getOrDefault("crossoverProbability", 0.9);
+
+        int populationSize = (int) params.getOrDefault("populationSize", 100);
+        int maxEvaluations = populationSize * (int) params.getOrDefault("generations", 100);
+
 
         BinaryWavePickingProblem problem = new BinaryWavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
-        // problem.setDistanceLambda(lambda);
-        // problem.setWaveSizePenalty(10);
         
-        double mutationProbability = 1.0/(orders.size() + aisles.size());        
-        // mutationProbability = 0.1;
-        double crossoverProbability = 0.9;
+        // problem.setDistanceLambda((double) params.getOrDefault("distanceLambda", 0.5));
+        // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));
+        
 
         SinglePointCrossover crossover = new SinglePointCrossover(crossoverProbability);
         BitFlipMutation mutation = new BitFlipMutation(mutationProbability);

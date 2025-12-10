@@ -12,14 +12,14 @@ import java.util.stream.IntStream;
 public class ChallengeSolver {
     private final long MAX_RUNTIME = 600000; // milliseconds; 10 minutes - 1 second
 
-    protected List<Map<Integer, Integer>> orders;
-    protected List<Map<Integer, Integer>> aisles;
-    protected List<Item> items;
-    protected int nItems;
-    protected int waveSizeLB;
-    protected int waveSizeUB;
-    protected boolean enableOutput = false; // Enable or disable solver output
-    protected Solving solving;
+    public List<Map<Integer, Integer>> orders;
+    public List<Map<Integer, Integer>> aisles;
+    public List<Item> items;
+    public int nItems;
+    public int waveSizeLB;
+    public int waveSizeUB;
+    public boolean enableOutput = false; // Enable or disable solver output
+    public Solving solving;
 
     public ChallengeSolver(
         List<Map<Integer, Integer>> orders, List<Map<Integer, Integer>> aisles, int nItems, int waveSizeLB, int waveSizeUB) {
@@ -42,8 +42,8 @@ public class ChallengeSolver {
         PartialResult nullSolution = new PartialResult(null, 0);
 
         
-        
-        Random random = new Random(1234);
+        long randomSeed = 1234;
+        Random random = new Random(randomSeed);
 
     
         // // Metodo 5 --- seleccionar ordenes al azar y minimizar pasillos necesarios
@@ -210,14 +210,22 @@ public class ChallengeSolver {
 
 
         // Genetic Algorithm
-        int gaPopulationSize = 100;
-        int generations = 100;
-        int maxIterations = 10;
+        Map<String, Object> params = new HashMap<>();
+        params.put("populationSize", 100);
+        params.put("generations", 100);
+        params.put("crossoverProbability", 0.9);
+        params.put("mutationProbability", 1.0/(orders.size() + aisles.size()));
+
+        params.put("randomSeed", randomSeed);
+        params.put("binaryEncoding", false);
+        
+        params.put("ordersUnionCrossover", true); // mejor si es true
+        params.put("showOutput", false); // TODO
+        
+        int maxIterations = 0;
         for (int i=0; i<maxIterations; i++) {
             System.out.println("\n-> Genetic Algorithm iteration " + (i+1));
-            bestSolution = solveGeneticAlgorithm(bestSolution, stopWatch, gaPopulationSize, generations*gaPopulationSize, random
-                , true
-                );
+            bestSolution = solveGeneticAlgorithm(bestSolution, stopWatch, params);
         }
 
         
@@ -232,6 +240,8 @@ public class ChallengeSolver {
         System.out.println("Total demand = " + demand);
         System.out.println("Total capacity left = " + (capacity - demand) + " = " + (((double) (capacity - demand)/capacity)*100)+ "%");
         
+        System.out.println("Selected aisles = " + bestSolution.partialSolution().aisles().size());
+        System.out.println("Selected orders = " + bestSolution.partialSolution().orders().size());
 
         return bestSolution.partialSolution();
     }
@@ -239,7 +249,7 @@ public class ChallengeSolver {
 
     // solving methods
 
-    protected PartialResult solveGeneticAlgorithm(PartialResult bestSolution, StopWatch stopWatch, int populationSize, int maxEvaluations, Random random, boolean binaryEncoding) {
+    protected PartialResult solveGeneticAlgorithm(PartialResult bestSolution, StopWatch stopWatch, Map<String, Object> params) {
         System.out.println("\n>> solveGeneticAlgorithm");
         System.out.println("Remaining time: " + getRemainingTime(stopWatch) + " seconds");
 
@@ -247,14 +257,10 @@ public class ChallengeSolver {
         System.out.println("Running Genetic Algorithm");
         ChallengeSolution gaSolution;
 
-        if (binaryEncoding) {
-            gaSolution = BinaryGeneticAlgorithmRunner.run(
-                orders, aisles, items, waveSizeLB, waveSizeUB,
-                populationSize, maxEvaluations, random);
+        if ((boolean) params.getOrDefault("binaryEncoding", false)) {
+            gaSolution = BinaryGeneticAlgorithmRunner.run(this, params);
         } else {
-            gaSolution = GeneticAlgorithmRunner.run(
-                orders, aisles, items, waveSizeLB, waveSizeUB,
-                populationSize, maxEvaluations, random);
+            gaSolution = GeneticAlgorithmRunner.run(this, params);
         }
 
         if (gaSolution == null) {
@@ -275,10 +281,6 @@ public class ChallengeSolver {
         }
 
         return bestSolution;
-    }
-    protected PartialResult solveGeneticAlgorithm(PartialResult bestSolution, StopWatch stopWatch, int populationSize, int maxEvaluations, Random random) {
-        return solveGeneticAlgorithm(bestSolution, stopWatch, populationSize, maxEvaluations, random, false);
-        // default value for binaryEncoding is false
     }
 
 

@@ -7,6 +7,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.sbpo2025.challenge.ChallengeSolution;
+import org.sbpo2025.challenge.ChallengeSolver;
 import org.sbpo2025.challenge.Item;
 
 import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.GenerationalGeneticAlgorithm;
@@ -21,23 +22,30 @@ import org.uma.jmetal.util.evaluator.impl.SequentialSolutionListEvaluator;
 
 public class GeneticAlgorithmRunner {
 
-    public static ChallengeSolution run(
-        List<Map<Integer, Integer>> orders, List<Map<Integer, Integer>> aisles,
-        List<Item> items, int waveSizeLB, int waveSizeUB,
-        int populationSize, int maxEvaluations, Random random) {
+    public static ChallengeSolution run(ChallengeSolver solver, Map<String, Object> params) {
+
+        List<Map<Integer, Integer>> orders = solver.orders;
+        List<Map<Integer, Integer>> aisles = solver.aisles;
+        List<Item> items = solver.items;
+        int waveSizeLB = solver.waveSizeLB;
+        int waveSizeUB = solver.waveSizeUB;
+
+        Random random = new Random((long) params.getOrDefault("randomSeed", 1234L));
+        double mutationProbability = (double) params.getOrDefault("mutationProbability", 1.0/(orders.size() + aisles.size()));
+        double crossoverProbability = (double) params.getOrDefault("crossoverProbability", 0.9);
+
+        int populationSize = (int) params.getOrDefault("populationSize", 100);
+        int maxEvaluations = populationSize * (int) params.getOrDefault("generations", 100);
 
         WavePickingProblem problem = new WavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
-        // problem.setDistanceLambda(lambda);
-        // problem.setWaveSizePenalty(10);
 
-        double mutationProbability = 1.0/(orders.size() + aisles.size());
-        // mutationProbability = 0.1;
-        double crossoverProbability = 0.9;
+        // problem.setDistanceLambda((double) params.getOrDefault("distanceLambda", 0.5));
+        // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10);
+        
 
-        CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size());
+        CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size(), (boolean) params.getOrDefault("ordersUnionCrossover", false));
         MutationOperator<WaveSolution> mutation = new BitFlipMutation(mutationProbability, random, orders.size(), aisles.size());
         SelectionOperator<List<WaveSolution>,WaveSolution> selection = new BinaryTournamentSelection(random);
-        // SelectionOperator<List<WaveSolution>,WaveSolution> selection = new org.uma.jmetal.operator.selection.impl.BinaryTournamentSelection<>();
         SolutionListEvaluator<WaveSolution> evaluator = new SequentialSolutionListEvaluator<>();
 
         GenerationalGeneticAlgorithm<WaveSolution> algorithm = new GenerationalGeneticAlgorithm<>(
@@ -59,8 +67,9 @@ public class GeneticAlgorithmRunner {
         private Random random;
         private Integer totalAislesNumber;
         private Integer totalOrdersNumber;
+        private boolean ordersUnionCrossover;
 
-        public SinglePointCrossover(double crossoverProbability, Random random, Integer totalAislesNumber, Integer totalOrdersNumber) {
+        public SinglePointCrossover(double crossoverProbability, Random random, Integer totalAislesNumber, Integer totalOrdersNumber, boolean ordersUnionCrossover) {
             if (crossoverProbability < 0) {
                 throw new JMetalException("Crossover probability is negative: " + crossoverProbability);
             }
@@ -68,6 +77,7 @@ public class GeneticAlgorithmRunner {
             this.random = random;
             this.totalAislesNumber = totalAislesNumber;
             this.totalOrdersNumber = totalOrdersNumber;
+            this.ordersUnionCrossover = ordersUnionCrossover;
         }
 
         @Override
@@ -75,10 +85,15 @@ public class GeneticAlgorithmRunner {
             Check.isNotNull(parents);
             Check.that(parents.size() == 2, "There must be two parents instead of " + parents.size());
 
-            return doCrossover(crossoverProbability, parents);
+            if (ordersUnionCrossover) {
+                return doOrdersUnionCrossover(crossoverProbability, parents);
+            } else {
+                return doCrossover(crossoverProbability, parents);
+            }
         }
 
         private List<WaveSolution> doCrossover(double probability, List<WaveSolution> parents) {
+            
             List<WaveSolution> offspring = new ArrayList<>(2);
             offspring.add(parents.get(0).copy());
             offspring.add(parents.get(1).copy());
@@ -87,25 +102,46 @@ public class GeneticAlgorithmRunner {
 
                 // 1. Calculate the point to make the crossover
                 int crossoverPoint = random.nextInt(totalOrdersNumber+totalAislesNumber); // between [0 and totalBits)
-
                 // 0, 1, 2, ..... orders-1, orders, orders+1, ...., orders+aisles-1
 
                 if (crossoverPoint < totalOrdersNumber) {
+                    
                     // 2.1 Swap orders from parents after the crossover point
                     swapOrders(parents, offspring, crossoverPoint);
+
                 } else {
+
                     // 2.2 Swap aisles from parents after the crossover point
                     swapAisles(parents, offspring, crossoverPoint-totalOrdersNumber-1);
                     // if crossover = #orders => crossoverPoint-totalOrdersNumber-1 = -1 => exchange aisles and orders subsets
                 }
-                
-                // 3 Set orders subset as the union of both parents' orders
-                // computeOrdersUnion(parents, offspring);
 
             }
 
             return offspring;
         }
+
+        private List<WaveSolution> doOrdersUnionCrossover(double probability, List<WaveSolution> parents) {
+            List<WaveSolution> offspring = new ArrayList<>(2);
+            offspring.add(parents.get(0).copy());
+            offspring.add(parents.get(1).copy());
+
+            if (random.nextDouble() < probability) {
+
+                // 1. Calculate the point to make the crossover
+                int crossoverPoint = random.nextInt(totalAislesNumber-1);
+
+                // 2 Swap aisles from parents after the crossover point
+                swapAisles(parents, offspring, crossoverPoint);
+                
+                // 3 Set orders subset as the union of both parents' orders
+                computeOrdersUnion(parents, offspring);
+
+            }
+
+            return offspring;
+        }
+
 
         private void swapAisles(List<WaveSolution> parents, List<WaveSolution> offspring, int crossoverPoint) {
 
