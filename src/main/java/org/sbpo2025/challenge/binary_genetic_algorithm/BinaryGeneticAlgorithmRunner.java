@@ -18,6 +18,8 @@ import org.uma.jmetal.util.evaluator.impl.SequentialSolutionListEvaluator;
 
 public class BinaryGeneticAlgorithmRunner {
 
+    public static boolean SHOW_OUTPUT = false;
+
     public static ChallengeSolution run(ChallengeSolver solver, Map<String, Object> params) {
 
         List<Map<Integer, Integer>> orders = solver.orders;
@@ -36,9 +38,13 @@ public class BinaryGeneticAlgorithmRunner {
 
         BinaryWavePickingProblem problem = new BinaryWavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
         
-        // problem.setDistanceLambda((double) params.getOrDefault("distanceLambda", 0.5));
-        // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));
+        if ((boolean) params.getOrDefault("showOutput", false)) {
+            problem.showOutput();
+            SHOW_OUTPUT = true;
+        }
         
+        // problem.setDistanceLambda((double) params.getOrDefault("distanceLambda", 0.5));
+        // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));        
 
         SinglePointCrossover crossover = new SinglePointCrossover(crossoverProbability);
         BitFlipMutation mutation = new BitFlipMutation(mutationProbability);

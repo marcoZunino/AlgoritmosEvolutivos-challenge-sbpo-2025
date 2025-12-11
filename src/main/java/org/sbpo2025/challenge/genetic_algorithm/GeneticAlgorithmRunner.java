@@ -22,6 +22,8 @@ import org.uma.jmetal.util.evaluator.impl.SequentialSolutionListEvaluator;
 
 public class GeneticAlgorithmRunner {
 
+    public static boolean SHOW_OUTPUT = false;
+
     public static ChallengeSolution run(ChallengeSolver solver, Map<String, Object> params) {
 
         List<Map<Integer, Integer>> orders = solver.orders;
@@ -39,11 +41,16 @@ public class GeneticAlgorithmRunner {
 
         WavePickingProblem problem = new WavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
 
+        if ((boolean) params.getOrDefault("showOutput", false)) {
+            problem.showOutput();
+            SHOW_OUTPUT = true;
+        }
+
         // problem.setDistanceLambda((double) params.getOrDefault("distanceLambda", 0.5));
         // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10);
         
 
-        CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size(), (boolean) params.getOrDefault("ordersUnionCrossover", false));
+        CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size(), (boolean) params.getOrDefault("ordersUnionCrossover", true));
         MutationOperator<WaveSolution> mutation = new BitFlipMutation(mutationProbability, random, orders.size(), aisles.size());
         SelectionOperator<List<WaveSolution>,WaveSolution> selection = new BinaryTournamentSelection(random);
         SolutionListEvaluator<WaveSolution> evaluator = new SequentialSolutionListEvaluator<>();
@@ -273,9 +280,11 @@ public class GeneticAlgorithmRunner {
             } else {
                 List<WaveSolution> candidates = SolutionListUtils.selectNRandomDifferentSolutions(2, solutionList, (low, up) -> random.nextInt(low, up));
 
-                System.out.println("Tournament between solutions with objectives: " + 
-                    candidates.get(0).getObjective(0) + " and " + candidates.get(1).getObjective(0)
-                );
+                if (SHOW_OUTPUT) {
+                        System.out.println("Tournament between solutions with objectives: " + 
+                        candidates.get(0).getObjective(0) + " and " + candidates.get(1).getObjective(0)
+                    );
+                }
 
                 if (candidates.get(0).getObjective(0) < candidates.get(1).getObjective(0)) {
                     result = candidates.get(0);

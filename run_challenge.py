@@ -97,14 +97,15 @@ def run_benchmark(source_folder, input_folder, output_folder):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python run_challenge.py <source_folder> <input_folder> <output_folder>")
+
+    if len(sys.argv) not in (3, 4):
+        print("Usage: python run_challenge.py [<source_folder>] <input_folder> <output_folder>")
         sys.exit(1)
 
-    source_folder = sys.argv[1]
-    input_folder = sys.argv[2]
-    output_folder = sys.argv[3]
-
+    source_folder = sys.argv[-3] if len(sys.argv) == 4 else os.getcwd()
+    input_folder = sys.argv[-2]
+    output_folder = sys.argv[-1]
+    
     # Convert to absolute paths
     source_folder = os.path.abspath(source_folder)
     input_folder = os.path.abspath(input_folder)

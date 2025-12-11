@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,24 +113,59 @@ public class Challenge {
         // Start the stopwatch to track the running time
         StopWatch stopWatch = StopWatch.createStarted();
 
-        if (args.length != 2) {
-            // System.out.println("Usage: java -jar target/ChallengeSBPO2025-1.0.jar <inputFilePath> <outputFilePath>");
+        String algorithm = "";
+
+        if (args.length < 1) {
+            // System.out.println("Usage: java -jar target/ChallengeSBPO2025-1.0.jar <inputFilePath> [params]");
             // return;
 
-            String defaultInstance = "a/instance_0019.txt"; // Default instance number
+            String defaultInstance = "a/instance_0002.txt"; // Default instance number
+
+            algorithm = "greedy";
 
             args = new String[]{
-                    "datasets/"+defaultInstance,
-                    "output/"+defaultInstance
+                    "datasets/"+defaultInstance,                    
             };
         }
 
+        if (Arrays.asList(args).contains("genetic")) {
+            algorithm = "genetic";
+        } else if (Arrays.asList(args).contains("greedy")) {
+            algorithm = "greedy";
+        }
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("populationSize", 100);
+        params.put("generations", 10);
+        params.put("crossoverProbability", 0.9);
+        // params.put("mutationProbability", 0.001);
+        params.put("randomSeed", 1234L);
+        params.put("binaryEncoding", false);
+        params.put("maxIterations", 1);
+        
+        params.put("showStats", Arrays.asList(args).contains("showStats"));
+        params.put("showOutput", Arrays.asList(args).contains("showOutput"));
+        // params.put("ordersUnionCrossover", false);
+        params.put("algorithm", algorithm); // "greedy" or "genetic"
+
         Challenge challenge = new Challenge();
-        challenge.readInput(args[0]);
+
+        String inputFilePath = args[0];
+        challenge.readInput(inputFilePath);
+
+        String[] split = inputFilePath.split("/");
+        String instance = split[split.length - 1];
+        System.out.println("Processing instance: " + instance);
+        String dataset = split[split.length - 2];
+
         var challengeSolver = new ChallengeSolver(
                 challenge.orders, challenge.aisles, challenge.nItems, challenge.waveSizeLB, challenge.waveSizeUB);
-        ChallengeSolution challengeSolution = challengeSolver.solve(stopWatch);
 
-        challenge.writeOutput(challengeSolution, args[1]);
+        ChallengeSolution challengeSolution = challengeSolver.solve(stopWatch, params);
+        
+        String outputFilePath = String.format("output/%s/%s/%s", algorithm, dataset, instance);
+        System.out.println("Writing output to: " + outputFilePath);
+        challenge.writeOutput(challengeSolution, outputFilePath);
+        
     }
 }

@@ -19,6 +19,7 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
     protected int waveSizeLB;
     protected int waveSizeUB;
     protected Random random;
+    protected boolean showOutput;
 
     protected double distanceLambda;
     protected double waveSizePenalty;
@@ -40,11 +41,11 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
       this.random = random;
       this.distanceLambda = 0.5;
       this.waveSizePenalty = orders.size() - waveSizeLB/aisles.size(); // default penalty
-
+      this.showOutput = false;
 
       this.setNumberOfVariables(2);
       this.setNumberOfObjectives(1);
-      this.setName("WavePickingProblem");
+      this.setName("WavePickingProblem");      
       
     }
 
@@ -56,25 +57,30 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
         this.waveSizePenalty = penalty;
     }
 
+    public void showOutput() {
+        this.showOutput = true;
+    }
+
 
     @Override
     public void evaluate(WaveSolution solution) {
         // Evaluation logic to be implemented
         if (!feasible(solution)) {
             feasibilityCorrection(solution);
-            System.out.println("Feasibility correction applied");
+            if (showOutput) System.out.println("Feasibility correction applied");
         }
 
         // Objective function: total units picked / number of visited aisles
         double objectiveValue = computeObjectiveValue(solution);
         int penalization = waveSizePenalization(solution);
         solution.setObjective(0, -(objectiveValue - waveSizePenalty*(double)penalization)/computeSharingFunction(solution));
-        if (penalization == 0) {
-            System.out.println("Evaluated solution with objective value: " + objectiveValue);
-        } else {
-            System.out.println("Evaluated solution with objective value: " + objectiveValue + " and penalization: " + penalization);
-        }
-        System.out.println(solution.getObjective(0));
+        
+        if (showOutput) System.out.println(String.format("""
+            Evaluated solution with objective value: %f %s
+                fitness: %f""",
+            objectiveValue, 
+            penalization != 0 ? String.format("and penalization: %d",penalization) : "",
+            solution.getObjective(0)));
     }
 
     @Override
@@ -102,6 +108,10 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
         // Calculate the number of visited aisles
         int numVisitedAisles = visitedAisles.size();
         return (double) totalUnitsPicked / numVisitedAisles;
+        // return (double) selectedOrders.size();
+        // return (double) 1.0 / numVisitedAisles;
+        // return (double) numVisitedAisles;
+        // return (double) selectedOrders.size() + numVisitedAisles;
     }
 
     private int waveSizePenalization(WaveSolution solution) {
