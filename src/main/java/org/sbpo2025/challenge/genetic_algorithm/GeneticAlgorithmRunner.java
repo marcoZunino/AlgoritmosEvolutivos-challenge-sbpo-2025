@@ -42,13 +42,14 @@ public class GeneticAlgorithmRunner {
 
         WavePickingProblem problem = new WavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
 
+        if (!(boolean) params.getOrDefault("warmStart", true)) problem.randomStart();
+
         if ((boolean) params.getOrDefault("showOutput", false)) {
             problem.showOutput();
             SHOW_OUTPUT = true;
         }
 
-        // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10);
-        
+        // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));        
 
         CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size(), (boolean) params.getOrDefault("ordersUnionCrossover", true));
         MutationOperator<WaveSolution> mutation = new BitFlipMutation(mutationProbability, random, orders.size(), aisles.size());
@@ -244,6 +245,7 @@ public class GeneticAlgorithmRunner {
         }
 
         public void doMutation(double probability, WaveSolution solution) {
+            
             for (int i = 0; i < totalOrdersNumber; i++) {
                 if (random.nextDouble() < probability) {
                     // flip order bit

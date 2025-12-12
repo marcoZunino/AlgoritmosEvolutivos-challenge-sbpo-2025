@@ -34,7 +34,7 @@ public class ChallengeSolver {
     public ChallengeSolution solve(StopWatch stopWatch, Map<String, Object> params) {
         
         if ((boolean) params.getOrDefault("showStats", false)) showStats();
-        if ((boolean) params.getOrDefault("showOutput", false)) showOutput = true;
+        if ((boolean) params.getOrDefault("showOutput", false)) this.showOutput = true;
 
         PartialResult bestSolution = new PartialResult(null, 0);
 

@@ -20,6 +20,7 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
     protected int waveSizeUB;
     protected Random random;
     protected boolean showOutput;
+    protected boolean warmStart;
 
     protected double waveSizePenalty;
 
@@ -40,6 +41,7 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
       this.random = random;
       this.waveSizePenalty = orders.size() - waveSizeLB/aisles.size(); // default penalty
       this.showOutput = false;
+      this.warmStart = true;
 
       this.setNumberOfVariables(2);
       this.setNumberOfObjectives(1);
@@ -54,6 +56,10 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
     public void showOutput() {
         this.showOutput = true;
+    }
+
+    public void randomStart() {
+        this.warmStart = false;
     }
 
 
@@ -77,8 +83,27 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
     @Override
     public WaveSolution createSolution() {
-        return new WaveSolution(getRandomSubset(IntStream.range(0, orders.size()).boxed().collect(Collectors.toList())),
-                                getRandomSubset(IntStream.range(0, aisles.size()).boxed().collect(Collectors.toList())));
+
+        List<Integer> selectedAisles = getRandomSubset(IntStream.range(0, aisles.size()).boxed().collect(Collectors.toList()));
+
+        if (!warmStart) { // totally random solution
+            return new WaveSolution(getRandomSubset(IntStream.range(0, orders.size()).boxed().collect(Collectors.toList())), selectedAisles);
+        }
+
+        // set items total stock
+        for (Item item : items) {
+            item.resetStock();
+            for (Map.Entry<Integer, Integer> aisle : item.aisles.entrySet()) { // for order with this item
+                if (selectedAisles.contains(aisle.getKey())) {
+                    item.addStock(aisle.getValue()); // Add stock from selected aisles
+                }
+            }
+        }
+
+        List<Integer> selectedOrders = selectRandomOrders();
+
+        return new WaveSolution(selectedOrders, selectedAisles);
+
     }
 
     private double computeObjectiveValue(WaveSolution solution) {
@@ -255,6 +280,56 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
         int ordersCount = random.nextInt(set.size()) + 1; // at least one element
         return new ArrayList<>(subset.subList(0, ordersCount));  // return the first 'ordersCount' elements
+    }
+
+
+    public List<Integer> selectRandomOrders() {
+
+        List<Integer> selectedOrders = new ArrayList<>();
+
+        for (Item item : items) { // for item
+
+            List<Map.Entry<Integer, Integer>> shuffledItemOrders = new ArrayList<>(item.orders.entrySet());
+            Collections.shuffle(shuffledItemOrders, random); // shuffle orders with this item
+
+            for (Map.Entry<Integer, Integer> order : shuffledItemOrders) { // for order with this item
+
+                // Check if the order can be fulfilled
+
+                // 1. check only "item"
+                if (item.stock < order.getValue()) continue;  // skip this order
+
+                int orderId = order.getKey();
+                boolean enoughStock = true;
+                
+                // 2. check all items required in the order
+                for (Map.Entry<Integer, Integer> entry : orders.get(orderId).entrySet()) {
+
+                    Item itemNeeded = items.get(entry.getKey());
+                    int itemQuantity = entry.getValue();
+
+                    if (itemNeeded.stock < itemQuantity) {
+                        enoughStock = false; // Not enough stock for item found
+                        break;
+                    }
+                }
+                
+                if (!enoughStock) continue;  // skip this order
+
+                selectedOrders.add(orderId);
+
+                // update stock
+                for (Map.Entry<Integer, Integer> entry : orders.get(orderId).entrySet()) { // for item in order
+                    Item itemNeeded = items.get(entry.getKey());
+                    int itemQuantity = entry.getValue();
+                    
+                    itemNeeded.removeStock(itemQuantity);
+                }
+
+            }
+        }
+
+        return selectedOrders;
     }
 
 

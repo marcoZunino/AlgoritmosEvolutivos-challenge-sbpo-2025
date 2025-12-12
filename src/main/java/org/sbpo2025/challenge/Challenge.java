@@ -153,6 +153,7 @@ public class Challenge {
         
         params.put("binaryEncoding", Arrays.asList(args).contains("binaryEncoding"));
         params.put("ordersUnionCrossover", !Arrays.asList(args).contains("defaultCrossover"));
+        params.put("warmStart", !Arrays.asList(args).contains("randomStart"));
 
         return params;
     }
@@ -177,10 +178,13 @@ public class Challenge {
         String inputFilePath = args[0];
 
         // Usage: 
-        // >> java -jar target/ChallengeSBPO2025-1.0.jar <inputfile> ...
-        //    [genetic|greedy] [steadyState|generational]
-        //    params:<randomSeed>/<iterations>/<generations>/<populationSize>/<crossoverProbability>/[mutationProbability]
-        //    [binaryEncoding] [showStats] [showOutput] [ordersUnionCrossover] [defaultCrossover]
+        // java -jar target/ChallengeSBPO2025-1.0.jar ...
+        // 	<inputfile>
+        // 	[showStats] [showOutput]
+        // 	[genetic|greedy] 
+        // 	[steadyState|generational] [binaryEncoding] [defaultCrossover] [randomStart]
+        // 	params:
+        // <randomSeed>/<iterations>/<generations>/<populationSize>/<crossoverProbability>/[mutationProbability]
 
         if (Arrays.asList(args).contains("genetic")) {
             
