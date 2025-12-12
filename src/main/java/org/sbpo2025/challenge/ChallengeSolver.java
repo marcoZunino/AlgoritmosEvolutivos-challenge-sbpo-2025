@@ -58,26 +58,28 @@ public class ChallengeSolver {
                 break;
 
             default:
-                System.out.println((String) params.getOrDefault("algorithm", "greedy"));
                 System.out.println("No valid algorithm selected.");
-                return bestSolution.partialSolution();
+                return null;
             
         }
     
         
         if (bestSolution.partialSolution() == null) {
+            
             System.out.println("No feasible solution found.");
-            return null;
-        }
+
+        } else {
         
-        // retrieve the final best solution
-        System.out.println("\nBest solution found with value " + bestSolution.objValue());
+            // retrieve the final best solution
+            System.out.println("\nBest solution found with value " + bestSolution.objValue());
 
-        System.out.println(String.format("%d aisles / %d orders",
-            bestSolution.partialSolution().aisles().size(),
-            bestSolution.partialSolution().orders().size()));
+            System.out.println(String.format("%d aisles / %d orders",
+                bestSolution.partialSolution().aisles().size(),
+                bestSolution.partialSolution().orders().size()));
 
-        System.out.println("Total execution time: " + stopWatch.getTime(TimeUnit.SECONDS) + " s");
+        }
+
+        System.out.println("Total execution time: " + (double) stopWatch.getTime(TimeUnit.MILLISECONDS)/1000 + " s");
 
         return bestSolution.partialSolution();
     }
@@ -102,17 +104,13 @@ public class ChallengeSolver {
             gaSolution = GeneticAlgorithmRunner.run(this, params);
         }
 
-        if (gaSolution == null) {
-            System.out.println("No feasible solution found");
+        if (gaSolution == null || !isSolutionFeasible(gaSolution)) {
+            if (showOutput) System.out.println("No feasible solution found");
             return bestSolution;
-        } // no feasible solution found
-
+        }
 
         double objValue = computeObjectiveFunction(gaSolution);
         System.out.println("Objective value = " + objValue);
-
-        double usedCapacity = (1 - totalCapacityLeft(gaSolution)) * 100.0;
-        System.out.println(String.format("Total capacity used = %.2f%%", usedCapacity));
 
         // update best solution
         if (objValue > bestSolution.objValue()) {
@@ -171,7 +169,7 @@ public class ChallengeSolver {
                 
                 if (showOutput) System.out.println("Objective value = " + partialResult.objValue());
                 
-                if (waveSize >= waveSizeLB && partialResult.objValue() > bestSolution.objValue()) {
+                if (!isSolutionFeasible(partialResult.partialSolution()) && partialResult.objValue() > bestSolution.objValue()) {
                     bestSolution = partialResult; // update best solution
                 }
             }

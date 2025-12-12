@@ -109,53 +109,13 @@ public class Challenge {
         }
     }
 
-    public static void main(String[] args) {
-        // Start the stopwatch to track the running time
-        StopWatch stopWatch = StopWatch.createStarted();
-        Map<String, Object> params = new HashMap<>();
-
-        String algorithm = "";
-        String GAimplementation = "";
-
-        if (args.length == 0) {
-
-            String defaultInstance = "x/instance_0002.txt"; // Default instance number
-
-            algorithm = "genetic";
-            GAimplementation = "generational";
-
-            args = new String[]{
-                    "datasets/"+defaultInstance,                    
-            };
-        }
-
-        String inputFilePath = args[0];
-
-        // Usage: 
-        // >> java -jar target/ChallengeSBPO2025-1.0.jar <inputfile> ...
-        //    [genetic|greedy]
-        //    params:<randomSeed>/<iterations>/<generations>/<populationSize>/<crossoverProbability>/[mutationProbability]
-        //    [binaryEncoding] [showStats] [showOutput] [ordersUnionCrossover] [defaultCrossover]
-
-        if (Arrays.asList(args).contains("genetic")) {
-            
-            algorithm = "genetic";
-            
-            if (Arrays.asList(args).contains("steadyState")) {
-                GAimplementation = "steadyState";
-            } else if (Arrays.asList(args).contains("generational")) {
-                GAimplementation = "generational";
-            }
-
-        } else if (Arrays.asList(args).contains("greedy")) {
-            algorithm = "greedy";
-        }
-
+    private static Map<String, Object> parseGeneticParams(Map<String, Object> params, String[] args) {
+        
         String paramsArg = null;
 
         // search for the argument that starts with "params:"
         for (String arg : args) {
-            if (algorithm == "genetic" && arg.startsWith("params:")) {
+            if (arg.startsWith("params:")) {
                 paramsArg = arg;
                 break;
             }
@@ -192,13 +152,54 @@ public class Challenge {
         if (mutationProb >= 0) params.put("mutationProbability", mutationProb);
         
         params.put("binaryEncoding", Arrays.asList(args).contains("binaryEncoding"));
+        params.put("ordersUnionCrossover", !Arrays.asList(args).contains("defaultCrossover"));
+
+        return params;
+    }
+
+    public static void main(String[] args) {
+        // Start the stopwatch to track the running time
+        StopWatch stopWatch = StopWatch.createStarted();
+        Map<String, Object> params = new HashMap<>();
+
+
+        if (args.length == 0) {
+
+            String defaultInstance = "b/instance_0002.txt"; // Default instance number
+
+            params.put("algorithm", "genetic");
+
+            args = new String[]{
+                    "datasets/"+defaultInstance,                    
+            };
+        }
+
+        String inputFilePath = args[0];
+
+        // Usage: 
+        // >> java -jar target/ChallengeSBPO2025-1.0.jar <inputfile> ...
+        //    [genetic|greedy] [steadyState|generational]
+        //    params:<randomSeed>/<iterations>/<generations>/<populationSize>/<crossoverProbability>/[mutationProbability]
+        //    [binaryEncoding] [showStats] [showOutput] [ordersUnionCrossover] [defaultCrossover]
+
+        if (Arrays.asList(args).contains("genetic")) {
+            
+            params.put("algorithm", "genetic");
+            
+            if (Arrays.asList(args).contains("steadyState")) {
+                params.put("GAimplementation", "steadyState");
+            } else if (Arrays.asList(args).contains("generational")) {
+                params.put("GAimplementation", "generational");
+            }
+
+            params = parseGeneticParams(params, args);
+
+        } else if (Arrays.asList(args).contains("greedy")) {
+            params.put("algorithm", "greedy");
+        }
+
         params.put("showStats", Arrays.asList(args).contains("showStats"));
         params.put("showOutput", Arrays.asList(args).contains("showOutput"));
-        params.put("ordersUnionCrossover", !Arrays.asList(args).contains("defaultCrossover"));
-        params.put("algorithm", algorithm); // "greedy" or "genetic"
-        params.put("GAimplementation", GAimplementation); // "generational" or "steadyState"
-
-        // System.out.println(params);
 
         Challenge challenge = new Challenge();
         challenge.readInput(inputFilePath);
@@ -213,8 +214,7 @@ public class Challenge {
 
         ChallengeSolution challengeSolution = challengeSolver.solve(stopWatch, params);
         
-        String outputFilePath = String.format("output/%s/%s/%s", algorithm, dataset, instance);
-        System.out.println("Writing output to: " + outputFilePath);
+        String outputFilePath = String.format("output/%s/%s/%s", params.getOrDefault("algorithm", "greedy"), dataset, instance);
         challenge.writeOutput(challengeSolution, outputFilePath);
         
     }

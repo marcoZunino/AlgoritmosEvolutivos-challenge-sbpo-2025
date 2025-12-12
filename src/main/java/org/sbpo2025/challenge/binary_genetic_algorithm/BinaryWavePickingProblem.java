@@ -61,11 +61,8 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
 
     @Override
     public void evaluate(BinarySolution solution) {
-        // Evaluation logic to be implemented
-        if (!feasible(solution)) {
-            feasibilityCorrection(solution);
-            if (showOutput) System.out.println("Feasibility correction applied");
-        }
+        
+        feasibilityCorrection(solution);
 
         // Objective function: total units picked / number of visited aisles
         double objectiveValue = computeObjectiveValue(solution);
@@ -129,15 +126,20 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         //     }
         // }
         for (Item item : items) {
+            
             int itemDemand = totalDemand(getSelectedOrders(solution), List.of(item));
             int itemCapacity = totalCapacity(getVisitedAisles(solution), List.of(item));
+            
+            List<Integer> itemOrders = item.orders.keySet().stream() // orders that contain item i
+                    .filter(o -> solution.getVariable(0).get(o)) // get only selected orders
+                    .collect(Collectors.toList());
+
             while (itemDemand > itemCapacity) {
                 // remove random order that contains item i
-                List<Integer> itemOrders = item.orders.keySet().stream()
-                    .filter(o -> solution.getVariable(0).get(o))
-                    .collect(Collectors.toList());
+                
                 int oToRemove = itemOrders.get(random.nextInt(itemOrders.size()));
                 solution.getVariable(0).set(oToRemove, false);
+                itemOrders.remove(Integer.valueOf(oToRemove));
                 itemDemand -= item.getOrderDemand(oToRemove);
                 // demand -= totalDemand(List.of(oToRemove));
 
@@ -188,9 +190,9 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
     //     }
     // }
 
-    private boolean feasible(BinarySolution solution) {
-        return availableCapacity(getSelectedOrders(solution), getVisitedAisles(solution));
-    }
+    // private boolean feasible(BinarySolution solution) {
+    //     return availableCapacity(getSelectedOrders(solution), getVisitedAisles(solution));
+    // }
 
     public List<Integer> getSelectedOrders(BinarySolution solution) {
         // getVariable(0) returns a BinarySet (bitstring)
@@ -212,9 +214,11 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
 
         int totalCapacity = 0;
 
-        for (int aisle : aislesList) {
-            for (Item item : itemsList) {
-                totalCapacity += item.getAisleCapacity(aisle);
+        for (Item item : itemsList) {
+            for (Map.Entry<Integer, Integer> aisle : item.aisles.entrySet()) {
+                if (aislesList.contains(aisle.getKey())) {
+                    totalCapacity += aisle.getValue();
+                }
             }
         }
 
@@ -227,9 +231,11 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
     private int totalDemand(List<Integer> ordersList, List<Item> itemsList) {
         int totalDemand = 0;
 
-        for (int order : ordersList) {
-            for (Item item : itemsList) {
-                totalDemand += item.getOrderDemand(order);
+        for (Item item : itemsList) {
+            for (Map.Entry<Integer, Integer> order : item.orders.entrySet()) {
+                if (ordersList.contains(order.getKey())) {
+                    totalDemand += order.getValue();
+                }
             }
         }
 
@@ -239,15 +245,15 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         return totalDemand(ordersList, items);
     }
 
-    private boolean availableCapacity(List<Integer> ordersList, List<Integer> aislesList) {
+    // private boolean availableCapacity(List<Integer> ordersList, List<Integer> aislesList) {
         
-      for (Item item : items) {
-            if (totalDemand(ordersList, List.of(item)) > totalCapacity(aislesList, List.of(item))) {
-                return false;
-            }
-        }
-        return true;
-    }
+    //   for (Item item : items) {
+    //         if (totalDemand(ordersList, List.of(item)) > totalCapacity(aislesList, List.of(item))) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
 
 
 }

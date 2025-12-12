@@ -59,11 +59,8 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
     @Override
     public void evaluate(WaveSolution solution) {
-        // Evaluation logic to be implemented
-        if (!feasible(solution)) {
-            feasibilityCorrection(solution);
-            if (showOutput) System.out.println("Feasibility correction applied");
-        }
+        
+        feasibilityCorrection(solution);
 
         // Objective function: total units picked / number of visited aisles
         double objectiveValue = computeObjectiveValue(solution);
@@ -135,18 +132,21 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
         //     }
         // }
         for (Item item : items) {
+            
             int itemDemand = totalDemand(solution.getOrders(), List.of(item));
             int itemCapacity = totalCapacity(solution.getAisles(), List.of(item));
+            
+            List<Integer> itemOrders = item.orders.keySet().stream() // orders that contain item i
+                    .filter(o -> solution.getOrders().contains(o)) // get only selected orders
+                    .collect(Collectors.toList());
+            
             while (itemDemand > itemCapacity) {
                 // remove random order that contains item i
-                List<Integer> itemOrders = item.orders.keySet().stream()
-                    .filter(o -> solution.getOrders().contains(o))
-                    .collect(Collectors.toList());
                 int oToRemove = itemOrders.get(random.nextInt(itemOrders.size()));
                 solution.removeOrder(oToRemove);
+                itemOrders.remove(Integer.valueOf(oToRemove));
                 itemDemand -= item.getOrderDemand(oToRemove);
                 // demand -= totalDemand(List.of(oToRemove));
-
             }
         }
         // while (demand > waveSizeUB) {
@@ -195,17 +195,19 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
     // }
 
-    private boolean feasible(WaveSolution solution) {
-        return availableCapacity(solution.getOrders(), solution.getAisles());
-    }
+    // private boolean feasible(WaveSolution solution) {
+    //     return availableCapacity(solution.getOrders(), solution.getAisles());
+    // }
 
     private int totalCapacity(List<Integer> aislesList, List<Item> itemsList) {
 
         int totalCapacity = 0;
 
-        for (int aisle : aislesList) {
-            for (Item item : itemsList) {
-                totalCapacity += item.getAisleCapacity(aisle);
+        for (Item item : itemsList) {
+            for (Map.Entry<Integer, Integer> aisle : item.aisles.entrySet()) {
+                if (aislesList.contains(aisle.getKey())) {
+                    totalCapacity += aisle.getValue();
+                }
             }
         }
 
@@ -218,9 +220,11 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
     private int totalDemand(List<Integer> ordersList, List<Item> itemsList) {
         int totalDemand = 0;
 
-        for (int order : ordersList) {
-            for (Item item : itemsList) {
-                totalDemand += item.getOrderDemand(order);
+        for (Item item : itemsList) {
+            for (Map.Entry<Integer, Integer> order : item.orders.entrySet()) {
+                if (ordersList.contains(order.getKey())) {
+                    totalDemand += order.getValue();
+                }
             }
         }
 
@@ -230,15 +234,15 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
         return totalDemand(ordersList, items);
     }
 
-    private boolean availableCapacity(List<Integer> ordersList, List<Integer> aislesList) {
+    // private boolean availableCapacity(List<Integer> ordersList, List<Integer> aislesList) {
         
-      for (Item item : items) {
-            if (totalDemand(ordersList, List.of(item)) > totalCapacity(aislesList, List.of(item))) {
-                return false;
-            }
-        }
-        return true;
-    }
+    //   for (Item item : items) {
+    //         if (totalDemand(ordersList, List.of(item)) > totalCapacity(aislesList, List.of(item))) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
 
     private List<Integer> getRandomSubset(List<Integer> set) {
         
