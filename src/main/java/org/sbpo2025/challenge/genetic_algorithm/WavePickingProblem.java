@@ -21,7 +21,6 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
     protected Random random;
     protected boolean showOutput;
 
-    protected double distanceLambda;
     protected double waveSizePenalty;
 
     public WavePickingProblem(List<Map<Integer, Integer>> orders,
@@ -39,7 +38,6 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
       this.items = items;
       
       this.random = random;
-      this.distanceLambda = 0.5;
       this.waveSizePenalty = orders.size() - waveSizeLB/aisles.size(); // default penalty
       this.showOutput = false;
 
@@ -49,9 +47,6 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
       
     }
 
-    public void setDistanceLambda(double lambda) {
-        this.distanceLambda = lambda;
-    }
 
     public void setWaveSizePenalty(double penalty) {
         this.waveSizePenalty = penalty;
@@ -73,7 +68,7 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
         // Objective function: total units picked / number of visited aisles
         double objectiveValue = computeObjectiveValue(solution);
         int penalization = waveSizePenalization(solution);
-        solution.setObjective(0, -(objectiveValue - waveSizePenalty*(double)penalization)/computeSharingFunction(solution));
+        solution.setObjective(0, -(objectiveValue - waveSizePenalty*(double)penalization));
         
         if (showOutput) System.out.println(String.format("""
             Evaluated solution with objective value: %f %s
@@ -125,28 +120,6 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
         } else {
             return 0;
         }
-    }
-
-    private double computeSharingFunction(WaveSolution solution) {
-        
-        // sum of sharing distances between the solution and all others in the population
-        double sharingSum = 1.0; // include the solution itself
-        // for (WaveSolution otherSolution : /* population */) {
-        //     if (otherSolution != solution) {
-        //         sharingSum += 1 - sharingDistance(solution, otherSolution);
-        //     }
-        // } // TODO
-        return sharingSum;
-        
-    }
-
-    private double sharingDistance(WaveSolution solution1, WaveSolution solution2) {
-
-        int sharedOrders = 0; // TODO
-        int sharedAisles = 0; // TODO
-
-        return (1 - distanceLambda) * sharedOrders + distanceLambda * sharedAisles;
-        
     }
 
     
@@ -202,25 +175,25 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
         
     }
 
-    private void removeUnusedAisles(WaveSolution solution) {
+    // private void removeUnusedAisles(WaveSolution solution) {
 
-        List<Integer> selectedOrders = solution.getOrders();
-        List<Integer> visitedAisles = solution.getAisles();
+    //     List<Integer> selectedOrders = solution.getOrders();
+    //     List<Integer> visitedAisles = solution.getAisles();
 
-        for (int aisle : visitedAisles) {
-            // Check if removing this aisle still keeps the solution feasible
-            List<Integer> aislesWithoutCurrent = visitedAisles.stream()
-                .filter(a -> a != aisle)
-                .collect(Collectors.toList());
-            if (availableCapacity(selectedOrders, aislesWithoutCurrent)) {
-                // Remove the aisle
-                solution.removeAisle(aisle);
-                removeUnusedAisles(solution);
-                break;
-            }
-        }
+    //     for (int aisle : visitedAisles) {
+    //         // Check if removing this aisle still keeps the solution feasible
+    //         List<Integer> aislesWithoutCurrent = visitedAisles.stream()
+    //             .filter(a -> a != aisle)
+    //             .collect(Collectors.toList());
+    //         if (availableCapacity(selectedOrders, aislesWithoutCurrent)) {
+    //             // Remove the aisle
+    //             solution.removeAisle(aisle);
+    //             removeUnusedAisles(solution);
+    //             break;
+    //         }
+    //     }
 
-    }
+    // }
 
     private boolean feasible(WaveSolution solution) {
         return availableCapacity(solution.getOrders(), solution.getAisles());

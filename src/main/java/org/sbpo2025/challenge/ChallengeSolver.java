@@ -87,6 +87,11 @@ public class ChallengeSolver {
 
     protected PartialResult solveGeneticAlgorithm(PartialResult bestSolution, StopWatch stopWatch, Map<String, Object> params) {
         System.out.println("\n>> solveGeneticAlgorithm");
+
+        if (getRemainingTime(stopWatch) < 1) {
+            System.out.println("Max runtime reached, stopping iteration over k.");
+            return bestSolution;
+        }
         if (showOutput) System.out.println("Remaining time: " + getRemainingTime(stopWatch) + " seconds");
 
         ChallengeSolution gaSolution;
@@ -124,9 +129,6 @@ public class ChallengeSolver {
         Set<Integer> selectedAisles = new HashSet<>();
         Set<Integer> remainingAisles = IntStream.range(0, aisles.size()).boxed().collect(Collectors.toSet());
 
-        Set<Integer> selectedOrders = new HashSet<>();
-        Set<Integer> remainingOrders = IntStream.range(0, orders.size()).boxed().collect(Collectors.toSet());
-
         int waveSize = 0;
 
         // iterate over the number of aisles
@@ -149,7 +151,6 @@ public class ChallengeSolver {
                 break;
             }
 
-
             if (showOutput) System.out.println("\nSelecting orders of available items from " + k + " aisles");
 
             int aisle = maxCapacityAisle(remainingAisles);
@@ -160,60 +161,19 @@ public class ChallengeSolver {
             remainingAisles.remove(aisle);
             selectedAisles.add(aisle);
 
-            // if (k < initialAislesNumber) {
-            //     continue; // skip iterations until we reach the initial aisles number
-            // }
-
-            int newOrdersCount = 0;
-            Map<Integer, Integer> aisleItems = aisles.get(aisle);
-            for (Map.Entry<Integer, Integer> entry : aisleItems.entrySet()) { // for item in aisle
-
-                Item item = items.get(entry.getKey());
-                int capacity = entry.getValue();
-                
-                for (Map.Entry<Integer, Integer> order : item.orders.entrySet()) { // for order with this item
-
-                    int orderId = order.getKey();
-                    int orderQuantity = order.getValue();
-
-                    if (waveSize + orderQuantity > waveSizeUB) {
-                        break;
-                    }
-
-                    // Check if the order can be fulfilled
-                    if (orders.get(orderId).size() > 1 || capacity < orderQuantity) {
-                        continue;
-                    }
-                    
-                    if (remainingOrders.contains(orderId)) {
-                        selectedOrders.add(orderId);
-                        remainingOrders.remove(orderId);
-                        capacity -= orderQuantity;
-                        waveSize += orderQuantity;
-                        newOrdersCount++;
-                    }
-                }
-            }
-            if (showOutput) System.out.println("New orders count: " + newOrdersCount);
-
-            PartialResult partialResult = generatePartialResult(selectedOrders, selectedAisles);
+            PartialResult partialResult = solveSuperAisleGreedySelection(stopWatch, selectedAisles);
 
             if (partialResult.partialSolution() == null) {
-                if (showOutput) System.out.println("No feasible solution found for k = " + k);
-                continue;
-            } // no feasible
+                if (showOutput) System.out.println("No feasible solution found");
+            } else {
 
-            // show selected solution
-            // System.out.println("Partial Solution:");
-            // System.out.println("Selected orders = " + partialResult.partialSolution().orders());
-            // System.out.println("Selected aisles = " + partialResult.partialSolution().aisles());
-            if (showOutput) System.out.println("Objective value = " + partialResult.objValue());
-            double usedCapacity = (1 - totalCapacityLeft(partialResult.partialSolution())) * 100.0;
-            if (showOutput) System.out.println(String.format("Total capacity used = %.2f%%", usedCapacity));
-            
-            // update best solution
-            if (waveSize >= waveSizeLB && partialResult.objValue() > bestSolution.objValue()) {
-                bestSolution = partialResult;
+                waveSize = totalDemand(partialResult.partialSolution().orders());
+                
+                if (showOutput) System.out.println("Objective value = " + partialResult.objValue());
+                
+                if (waveSize >= waveSizeLB && partialResult.objValue() > bestSolution.objValue()) {
+                    bestSolution = partialResult; // update best solution
+                }
             }
 
         }
@@ -222,6 +182,84 @@ public class ChallengeSolver {
         if (showOutput) System.out.println("Best solution found with value " + bestSolution.objValue());
 
         return bestSolution;
+    }
+
+    protected PartialResult solveSuperAisleGreedySelection(StopWatch stopWatch, Set<Integer> selectedAisles) {
+
+        // Implementar el algoritmo greedy para seleccionar órdenes sobre un subconjunto de pasillos
+        
+        // Crear un "super-pasillo" ficticio que combine los pasillos seleccionados
+        // set items stock
+        for (Item item : items) {
+            item.resetStock();
+            for (Map.Entry<Integer, Integer> aisle : item.aisles.entrySet()) { // for order with this item
+                if (selectedAisles.contains(aisle.getKey())) {
+                    item.addStock(aisle.getValue()); // Add stock from selected aisles
+                }
+            }
+        }
+
+        Set<Integer> selectedOrders = selectOrders();
+
+        return generatePartialResult(selectedOrders, selectedAisles);
+
+    }
+
+
+    public Set<Integer> selectOrders() {
+
+        Set<Integer> selectedOrders = new HashSet<>();
+
+        // recorrer items para seleccionar ordenes
+        int waveSize = 0;
+
+        List<Item> sortedItems = new ArrayList<>(items).stream()
+                .sorted(Comparator.comparingInt(item -> -item.stock)).toList();
+        
+        for (Item item : sortedItems) { // for item in aisle
+
+            List<Map.Entry<Integer, Integer>> sortedOrders = new ArrayList<>(item.orders.entrySet());
+            sortedOrders.sort(Map.Entry.<Integer, Integer>comparingByValue().reversed());
+
+            for (Map.Entry<Integer, Integer> order : sortedOrders) { // for order with this item
+
+                int orderId = order.getKey();
+                int orderDemand = 0;
+
+                boolean enoughStock = true;
+                // Check if the order can be fulfilled
+                if (item.stock < order.getValue()) { // check only "item"
+                    enoughStock = false;
+                }
+                for (Map.Entry<Integer, Integer> entry : orders.get(orderId).entrySet()) { // check all items
+                    Item itemNeeded = items.get(entry.getKey());
+                    int itemQuantity = entry.getValue();
+                    orderDemand += itemQuantity;
+
+                    if (itemNeeded.stock < itemQuantity) {
+                        enoughStock = false; // Not enough stock for item found
+                        break;
+                    }
+                }
+                if (!enoughStock || waveSize + orderDemand > waveSizeUB) { // do not exceed upper bound
+                    continue;
+                }
+
+                selectedOrders.add(orderId);
+
+                // update stock
+                for (Map.Entry<Integer, Integer> entry : orders.get(orderId).entrySet()) { // for item in order
+                    Item itemNeeded = items.get(entry.getKey());
+                    int itemQuantity = entry.getValue();
+                    
+                    itemNeeded.removeStock(itemQuantity);
+                }
+
+                waveSize += orderDemand;
+            }
+        }
+
+        return selectedOrders;
     }
    
 

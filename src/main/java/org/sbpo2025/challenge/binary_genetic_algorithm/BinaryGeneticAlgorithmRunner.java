@@ -43,7 +43,6 @@ public class BinaryGeneticAlgorithmRunner {
             SHOW_OUTPUT = true;
         }
         
-        // problem.setDistanceLambda((double) params.getOrDefault("distanceLambda", 0.5));
         // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));        
 
         SinglePointCrossover crossover = new SinglePointCrossover(crossoverProbability);

@@ -15,7 +15,6 @@ import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.SteadyStateGene
 import org.uma.jmetal.operator.crossover.CrossoverOperator;
 import org.uma.jmetal.operator.mutation.MutationOperator;
 import org.uma.jmetal.operator.selection.SelectionOperator;
-import org.uma.jmetal.problem.Problem;
 import org.uma.jmetal.util.JMetalException;
 import org.uma.jmetal.util.SolutionListUtils;
 import org.uma.jmetal.util.checking.Check;
@@ -48,7 +47,6 @@ public class GeneticAlgorithmRunner {
             SHOW_OUTPUT = true;
         }
 
-        // problem.setDistanceLambda((double) params.getOrDefault("distanceLambda", 0.5));
         // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10);
         
 

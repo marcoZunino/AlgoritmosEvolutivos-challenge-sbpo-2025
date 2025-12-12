@@ -20,7 +20,6 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
     protected Random random;
     protected boolean showOutput;
 
-    protected double distanceLambda;
     protected double waveSizePenalty;
 
     public BinaryWavePickingProblem(List<Map<Integer, Integer>> orders,
@@ -38,7 +37,6 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
       this.items = items;
       
       this.random = random;
-      this.distanceLambda = 0.5;
       this.waveSizePenalty = orders.size() - waveSizeLB/aisles.size(); // default penalty
       this.showOutput = false;
 
@@ -46,10 +44,6 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
       this.setNumberOfObjectives(1);
       this.setName("BinaryWavePickingProblem");
       
-    }
-
-    public void setDistanceLambda(double lambda) {
-        this.distanceLambda = lambda;
     }
 
     public void setWaveSizePenalty(double penalty) {
@@ -76,7 +70,7 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         // Objective function: total units picked / number of visited aisles
         double objectiveValue = computeObjectiveValue(solution);
         int penalization = waveSizePenalization(solution);
-        solution.setObjective(0, -(objectiveValue - waveSizePenalty*(double)penalization)/computeSharingFunction(solution));
+        solution.setObjective(0, -(objectiveValue - waveSizePenalty*(double)penalization));
         if (showOutput) System.out.println(String.format("""
             Evaluated solution with objective value: %f %s
                 fitness: %f""",
@@ -122,29 +116,7 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         }
     }
 
-    private double computeSharingFunction(BinarySolution solution) {
-        
-        // sum of sharing distances between the solution and all others in the population
-        double sharingSum = 1.0; // include the solution itself
-        // for (BinarySolution otherSolution : /* population */) {
-        //     if (otherSolution != solution) {
-        //         sharingSum += 1 - sharingDistance(solution, otherSolution);
-        //     }
-        // } // TODO
-        return sharingSum;
-        
-    }
 
-    private double sharingDistance(BinarySolution solution1, BinarySolution solution2) {
-
-        int sharedOrders = 0; // TODO
-        int sharedAisles = 0; // TODO
-
-        return (1 - distanceLambda) * sharedOrders + distanceLambda * sharedAisles;
-        
-    }
-
-    
     private void feasibilityCorrection(BinarySolution solution) {
 
         // int demand = totalDemand(getSelectedOrders(solution));
@@ -197,25 +169,24 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         
     }
 
-    private void removeUnusedAisles(BinarySolution solution) {
+    // private void removeUnusedAisles(BinarySolution solution) {
 
-        List<Integer> selectedOrders = getSelectedOrders(solution);
-        List<Integer> visitedAisles = getVisitedAisles(solution);
+    //     List<Integer> selectedOrders = getSelectedOrders(solution);
+    //     List<Integer> visitedAisles = getVisitedAisles(solution);
 
-        for (int aisle : visitedAisles) {
-            // Check if removing this aisle still keeps the solution feasible
-            List<Integer> aislesWithoutCurrent = visitedAisles.stream()
-                .filter(a -> a != aisle)
-                .collect(Collectors.toList());
-            if (availableCapacity(selectedOrders, aislesWithoutCurrent)) {
-                // Remove the aisle
-                solution.getVariable(1).set(aisle, false);
-                removeUnusedAisles(solution);
-                break;
-            }
-        }
-
-    }
+    //     for (int aisle : visitedAisles) {
+    //         // Check if removing this aisle still keeps the solution feasible
+    //         List<Integer> aislesWithoutCurrent = visitedAisles.stream()
+    //             .filter(a -> a != aisle)
+    //             .collect(Collectors.toList());
+    //         if (availableCapacity(selectedOrders, aislesWithoutCurrent)) {
+    //             // Remove the aisle
+    //             solution.getVariable(1).set(aisle, false);
+    //             removeUnusedAisles(solution);
+    //             break;
+    //         }
+    //     }
+    // }
 
     private boolean feasible(BinarySolution solution) {
         return availableCapacity(getSelectedOrders(solution), getVisitedAisles(solution));
