@@ -9,11 +9,13 @@ import java.util.stream.Collectors;
 import org.sbpo2025.challenge.ChallengeSolution;
 import org.sbpo2025.challenge.ChallengeSolver;
 import org.sbpo2025.challenge.Item;
-
+import org.uma.jmetal.algorithm.impl.AbstractGeneticAlgorithm;
 import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.GenerationalGeneticAlgorithm;
+import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.SteadyStateGeneticAlgorithm;
 import org.uma.jmetal.operator.crossover.CrossoverOperator;
 import org.uma.jmetal.operator.mutation.MutationOperator;
 import org.uma.jmetal.operator.selection.SelectionOperator;
+import org.uma.jmetal.problem.Problem;
 import org.uma.jmetal.util.JMetalException;
 import org.uma.jmetal.util.SolutionListUtils;
 import org.uma.jmetal.util.checking.Check;
@@ -53,10 +55,21 @@ public class GeneticAlgorithmRunner {
         CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size(), (boolean) params.getOrDefault("ordersUnionCrossover", true));
         MutationOperator<WaveSolution> mutation = new BitFlipMutation(mutationProbability, random, orders.size(), aisles.size());
         SelectionOperator<List<WaveSolution>,WaveSolution> selection = new BinaryTournamentSelection(random);
-        SolutionListEvaluator<WaveSolution> evaluator = new SequentialSolutionListEvaluator<>();
 
-        GenerationalGeneticAlgorithm<WaveSolution> algorithm = new GenerationalGeneticAlgorithm<>(
-                problem, maxEvaluations, populationSize, crossover, mutation, selection, evaluator);
+        AbstractGeneticAlgorithm<WaveSolution, WaveSolution> algorithm = null;
+
+        switch ((String) params.getOrDefault("GAimplementation", "steadyState")) {
+            
+            case "steadyState":
+                algorithm = new SteadyStateGeneticAlgorithm<>(problem, maxEvaluations, populationSize, crossover, mutation, selection);
+                break;
+
+            case "generational":
+                SolutionListEvaluator<WaveSolution> evaluator = new SequentialSolutionListEvaluator<>();
+                algorithm = new GenerationalGeneticAlgorithm<>(problem, maxEvaluations, populationSize, crossover, mutation, selection, evaluator);
+                
+                break;
+        }
         
         algorithm.run();
 

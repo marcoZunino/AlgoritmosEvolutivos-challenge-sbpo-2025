@@ -81,6 +81,21 @@ class WaveOrderPicking:
 
         # Objective function: total units picked / number of visited aisles
         return total_units_picked / num_visited_aisles
+    
+    def check_result(self, input, output):
+    
+        self.read_input(input)
+        selected_orders, visited_aisles = self.read_output(output)
+
+        is_feasible = self.is_solution_feasible(selected_orders, visited_aisles)
+        objective_value = self.compute_objective_function(selected_orders, visited_aisles)
+        
+        return {
+            "is_feasible": is_feasible,
+            "objective_value": objective_value
+        }
+
+
 
 if __name__ == "__main__":
     import sys

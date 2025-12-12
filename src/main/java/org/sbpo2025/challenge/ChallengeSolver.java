@@ -47,9 +47,12 @@ public class ChallengeSolver {
                 break;
                 
             case "genetic":
+
+                Random random = new Random((long) params.getOrDefault("randomSeed", 1234L));
                 
-                // Algoritmo Genético        
+                // Algoritmo Genético
                 for (int i = 0; i < (int) params.getOrDefault("maxIterations", 1); i++) {
+                    params.put("randomSeed", random.nextLong());
                     bestSolution = solveGeneticAlgorithm(bestSolution, stopWatch, params);
                 }
                 break;
@@ -69,16 +72,12 @@ public class ChallengeSolver {
         
         // retrieve the final best solution
         System.out.println("\nBest solution found with value " + bestSolution.objValue());
-        System.out.println("Final remaining time: " + getRemainingTime(stopWatch) + " seconds");
 
-        int capacity = totalCapacity(bestSolution.partialSolution().aisles());
-        int demand = totalDemand(bestSolution.partialSolution().orders());
-        System.out.println("Total capacity = " + capacity);
-        System.out.println("Total demand = " + demand);
-        System.out.println("Total capacity left = " + (capacity - demand) + " = " + (((double) (capacity - demand)/capacity)*100)+ "%");
-        
-        System.out.println("Selected aisles = " + bestSolution.partialSolution().aisles().size());
-        System.out.println("Selected orders = " + bestSolution.partialSolution().orders().size());
+        System.out.println(String.format("%d aisles / %d orders",
+            bestSolution.partialSolution().aisles().size(),
+            bestSolution.partialSolution().orders().size()));
+
+        System.out.println("Total execution time: " + stopWatch.getTime(TimeUnit.SECONDS) + " s");
 
         return bestSolution.partialSolution();
     }

@@ -112,51 +112,101 @@ public class Challenge {
     public static void main(String[] args) {
         // Start the stopwatch to track the running time
         StopWatch stopWatch = StopWatch.createStarted();
+        Map<String, Object> params = new HashMap<>();
 
         String algorithm = "";
+        String GAimplementation = "";
 
-        if (args.length < 1) {
-            // System.out.println("Usage: java -jar target/ChallengeSBPO2025-1.0.jar <inputFilePath> [params]");
-            // return;
+        if (args.length == 0) {
 
-            String defaultInstance = "a/instance_0002.txt"; // Default instance number
+            String defaultInstance = "x/instance_0002.txt"; // Default instance number
 
-            algorithm = "greedy";
+            algorithm = "genetic";
+            GAimplementation = "generational";
 
             args = new String[]{
                     "datasets/"+defaultInstance,                    
             };
         }
 
+        String inputFilePath = args[0];
+
+        // Usage: 
+        // >> java -jar target/ChallengeSBPO2025-1.0.jar <inputfile> ...
+        //    [genetic|greedy]
+        //    params:<randomSeed>/<iterations>/<generations>/<populationSize>/<crossoverProbability>/[mutationProbability]
+        //    [binaryEncoding] [showStats] [showOutput] [ordersUnionCrossover] [defaultCrossover]
+
         if (Arrays.asList(args).contains("genetic")) {
+            
             algorithm = "genetic";
+            
+            if (Arrays.asList(args).contains("steadyState")) {
+                GAimplementation = "steadyState";
+            } else if (Arrays.asList(args).contains("generational")) {
+                GAimplementation = "generational";
+            }
+
         } else if (Arrays.asList(args).contains("greedy")) {
             algorithm = "greedy";
         }
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("populationSize", 100);
-        params.put("generations", 10);
-        params.put("crossoverProbability", 0.9);
-        // params.put("mutationProbability", 0.001);
-        params.put("randomSeed", 1234L);
-        params.put("binaryEncoding", false);
-        params.put("maxIterations", 1);
+        String paramsArg = null;
+
+        // search for the argument that starts with "params:"
+        for (String arg : args) {
+            if (algorithm == "genetic" && arg.startsWith("params:")) {
+                paramsArg = arg;
+                break;
+            }
+        }
+
+        long seed; int iterations; int populationSize; int generations; double crossoverProb; double mutationProb;
+        // parse required parameters
+        try {
+            String raw = paramsArg.substring("params:".length());
+            String[] parts = raw.split("/");
+
+            seed = Long.parseLong(parts[0]);
+            iterations = Integer.parseInt(parts[1]);
+            generations = Integer.parseInt(parts[2]);
+            populationSize = Integer.parseInt(parts[3]);
+            crossoverProb = Double.parseDouble(parts[4]);
+            mutationProb = parts.length > 5 ? Double.parseDouble(parts[5]) : -1; //optional
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage() + "\n -> Default parameters will be used.");
+            seed = 12345L;
+            iterations = 1;
+            populationSize = 50;
+            generations = 100;
+            crossoverProb = 0.9;
+            mutationProb = -1; // will be set later based on encoding
+        }
+
+        params.put("randomSeed", seed);
+        params.put("maxIterations", iterations);
+        params.put("populationSize", populationSize);
+        params.put("generations", generations);
+        params.put("crossoverProbability", crossoverProb);
+        if (mutationProb >= 0) params.put("mutationProbability", mutationProb);
         
+        params.put("binaryEncoding", Arrays.asList(args).contains("binaryEncoding"));
         params.put("showStats", Arrays.asList(args).contains("showStats"));
         params.put("showOutput", Arrays.asList(args).contains("showOutput"));
-        // params.put("ordersUnionCrossover", false);
+        params.put("ordersUnionCrossover", !Arrays.asList(args).contains("defaultCrossover"));
         params.put("algorithm", algorithm); // "greedy" or "genetic"
+        params.put("GAimplementation", GAimplementation); // "generational" or "steadyState"
+
+        // System.out.println(params);
 
         Challenge challenge = new Challenge();
-
-        String inputFilePath = args[0];
         challenge.readInput(inputFilePath);
 
         String[] split = inputFilePath.split("/");
-        String instance = split[split.length - 1];
+        String instance = split[split.length-1];
         System.out.println("Processing instance: " + instance);
-        String dataset = split[split.length - 2];
+        String dataset = split[split.length-2];
 
         var challengeSolver = new ChallengeSolver(
                 challenge.orders, challenge.aisles, challenge.nItems, challenge.waveSizeLB, challenge.waveSizeUB);
