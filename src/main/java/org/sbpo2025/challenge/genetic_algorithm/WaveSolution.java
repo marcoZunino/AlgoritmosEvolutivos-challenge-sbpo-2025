@@ -34,14 +34,14 @@ public class WaveSolution extends AbstractSolution<List<Integer>> {
   }
 
   public void addOrder(int orderId) {
-    this.getVariable(0).add(orderId);
+    if (!this.getVariable(0).contains(orderId)) this.getVariable(0).add(orderId);
   }
   public void removeOrder(int orderId) {
     this.getVariable(0).remove(Integer.valueOf(orderId));
   }
 
   public void addAisle(int aisleId) {
-    this.getVariable(1).add(aisleId);
+    if (!this.getVariable(1).contains(aisleId)) this.getVariable(1).add(aisleId);
   }
   public void removeAisle(int aisleId) {
     this.getVariable(1).remove(Integer.valueOf(aisleId));

@@ -146,19 +146,11 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
     
     private void feasibilityCorrection(WaveSolution solution) {
-
-        // int demand = totalDemand(solution.getOrders());
-        // while (demand < waveSizeUB) {
-        //     // add random order
-        //     int o = random.nextInt(orders.size());
-        //     if (!solution.getVariable(0).get(o) && (availableCapacity(List.of(o), solution.getAisles()))) {
-        //         solution.getVariable(0).set(o, true);
-        //         demand += totalDemand(List.of(o));
-        //     }
-        // }
+        
         for (Item item : items) {
             
             int itemDemand = totalDemand(solution.getOrders(), List.of(item));
+            if (itemDemand <= 0) continue;
             int itemCapacity = totalCapacity(solution.getAisles(), List.of(item));
             
             List<Integer> itemOrders = item.orders.keySet().stream() // orders that contain item i
@@ -171,7 +163,6 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
                 solution.removeOrder(oToRemove);
                 itemOrders.remove(Integer.valueOf(oToRemove));
                 itemDemand -= item.getOrderDemand(oToRemove);
-                // demand -= totalDemand(List.of(oToRemove));
             }
         }
         // while (demand > waveSizeUB) {
@@ -196,7 +187,6 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
                 capacity += totalCapacity(List.of(a));
             }
         }
-
         
     }
 
@@ -300,9 +290,10 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
                 if (item.stock < order.getValue()) continue;  // skip this order
 
                 int orderId = order.getKey();
-                boolean enoughStock = true;
+                if (selectedOrders.contains(orderId)) continue; // skip if already selected
                 
                 // 2. check all items required in the order
+                boolean enoughStock = true;
                 for (Map.Entry<Integer, Integer> entry : orders.get(orderId).entrySet()) {
 
                     Item itemNeeded = items.get(entry.getKey());

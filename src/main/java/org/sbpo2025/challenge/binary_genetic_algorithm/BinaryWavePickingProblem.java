@@ -116,18 +116,10 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
 
     private void feasibilityCorrection(BinarySolution solution) {
 
-        // int demand = totalDemand(getSelectedOrders(solution));
-        // while (demand < waveSizeUB) {
-        //     // add random order
-        //     int o = random.nextInt(orders.size());
-        //     if (!solution.getVariable(0).get(o) && (availableCapacity(List.of(o), getVisitedAisles(solution)))) {
-        //         solution.getVariable(0).set(o, true);
-        //         demand += totalDemand(List.of(o));
-        //     }
-        // }
         for (Item item : items) {
             
             int itemDemand = totalDemand(getSelectedOrders(solution), List.of(item));
+            if (itemDemand <= 0) continue;
             int itemCapacity = totalCapacity(getVisitedAisles(solution), List.of(item));
             
             List<Integer> itemOrders = item.orders.keySet().stream() // orders that contain item i
