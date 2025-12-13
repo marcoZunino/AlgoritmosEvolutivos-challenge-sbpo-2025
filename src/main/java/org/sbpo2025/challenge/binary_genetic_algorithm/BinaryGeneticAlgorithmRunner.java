@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.sbpo2025.challenge.ChallengeSolution;
 import org.sbpo2025.challenge.ChallengeSolver;
 import org.sbpo2025.challenge.Item;
+import org.uma.jmetal.algorithm.impl.AbstractGeneticAlgorithm;
 import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.GenerationalGeneticAlgorithm;
 import org.uma.jmetal.operator.crossover.impl.SinglePointCrossover;
 import org.uma.jmetal.operator.mutation.impl.BitFlipMutation;
@@ -15,6 +16,7 @@ import org.uma.jmetal.operator.selection.impl.BinaryTournamentSelection;
 import org.uma.jmetal.solution.binarysolution.BinarySolution;
 import org.uma.jmetal.util.evaluator.SolutionListEvaluator;
 import org.uma.jmetal.util.evaluator.impl.SequentialSolutionListEvaluator;
+
 
 public class BinaryGeneticAlgorithmRunner {
 
@@ -50,7 +52,7 @@ public class BinaryGeneticAlgorithmRunner {
         BinaryTournamentSelection<BinarySolution> selection = new BinaryTournamentSelection<>();
         SolutionListEvaluator<BinarySolution> evaluator = new SequentialSolutionListEvaluator<>();
 
-        GenerationalGeneticAlgorithm<BinarySolution> algorithm = new GenerationalGeneticAlgorithm<>(
+        AbstractGeneticAlgorithm<BinarySolution, BinarySolution> algorithm = new GenerationalGeneticAlgorithm<>(
                 problem, maxEvaluations, populationSize, crossover, mutation, selection, evaluator);
         
         algorithm.run();

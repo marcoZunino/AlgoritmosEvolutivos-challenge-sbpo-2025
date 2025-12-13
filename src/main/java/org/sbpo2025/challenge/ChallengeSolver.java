@@ -91,7 +91,7 @@ public class ChallengeSolver {
         System.out.println("\n>> solveGeneticAlgorithm");
 
         if (getRemainingTime(stopWatch) < 1) {
-            System.out.println("Max runtime reached, stopping iteration over k.");
+            System.out.println("Max runtime reached");
             return bestSolution;
         }
         if (showOutput) System.out.println("Remaining time: " + getRemainingTime(stopWatch) + " seconds");
@@ -222,6 +222,8 @@ public class ChallengeSolver {
             for (Map.Entry<Integer, Integer> order : sortedOrders) { // for order with this item
 
                 int orderId = order.getKey();
+                if (selectedOrders.contains(orderId)) continue; // already selected
+
                 int orderDemand = 0;
 
                 boolean enoughStock = true;

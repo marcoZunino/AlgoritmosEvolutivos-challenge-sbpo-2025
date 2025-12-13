@@ -51,8 +51,8 @@ public class GeneticAlgorithmRunner {
 
         // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));        
 
-        CrossoverOperator<WaveSolution> crossover = new SinglePointCrossover(crossoverProbability, random, aisles.size(), orders.size(), (boolean) params.getOrDefault("ordersUnionCrossover", true));
-        MutationOperator<WaveSolution> mutation = new BitFlipMutation(mutationProbability, random, orders.size(), aisles.size());
+        CrossoverOperator<WaveSolution> crossover = new Crossover(crossoverProbability, (boolean) params.getOrDefault("ordersUnionCrossover", true), random);
+        MutationOperator<WaveSolution> mutation = new BitFlipMutation(mutationProbability, problem, random);
         SelectionOperator<List<WaveSolution>,WaveSolution> selection = new BinaryTournamentSelection(random);
 
         AbstractGeneticAlgorithm<WaveSolution, WaveSolution> algorithm = null;
@@ -80,22 +80,18 @@ public class GeneticAlgorithmRunner {
 
     }
 
-    private static class SinglePointCrossover implements CrossoverOperator<WaveSolution> {
+    static class Crossover implements CrossoverOperator<WaveSolution> {
         
         private double crossoverProbability;
         private Random random;
-        private Integer totalAislesNumber;
-        private Integer totalOrdersNumber;
         private boolean ordersUnionCrossover;
 
-        public SinglePointCrossover(double crossoverProbability, Random random, Integer totalAislesNumber, Integer totalOrdersNumber, boolean ordersUnionCrossover) {
+        public Crossover(double crossoverProbability, boolean ordersUnionCrossover, Random random) {
             if (crossoverProbability < 0) {
                 throw new JMetalException("Crossover probability is negative: " + crossoverProbability);
             }
             this.crossoverProbability = crossoverProbability;
             this.random = random;
-            this.totalAislesNumber = totalAislesNumber;
-            this.totalOrdersNumber = totalOrdersNumber;
             this.ordersUnionCrossover = ordersUnionCrossover;
         }
 
@@ -105,55 +101,42 @@ public class GeneticAlgorithmRunner {
             Check.that(parents.size() == 2, "There must be two parents instead of " + parents.size());
 
             if (ordersUnionCrossover) {
-                return doOrdersUnionCrossover(crossoverProbability, parents);
+                return doOrdersUnionCrossover(parents);
             } else {
-                return doCrossover(crossoverProbability, parents);
+                return doCrossover(parents);
             }
         }
 
-        private List<WaveSolution> doCrossover(double probability, List<WaveSolution> parents) {
+        private List<WaveSolution> doCrossover(List<WaveSolution> parents) {
             
             List<WaveSolution> offspring = new ArrayList<>(2);
             offspring.add(parents.get(0).copy());
             offspring.add(parents.get(1).copy());
 
-            if (random.nextDouble() < probability) {
+            if (random.nextDouble() < crossoverProbability) {
 
-                // 1. Calculate the point to make the crossover
-                int crossoverPoint = random.nextInt(totalOrdersNumber+totalAislesNumber); // between [0 and totalBits)
-                // 0, 1, 2, ..... orders-1, orders, orders+1, ...., orders+aisles-1
+                // 1. Swap orders from parents
+                swapOrders(parents, offspring);
 
-                if (crossoverPoint < totalOrdersNumber) {
-                    
-                    // 2.1 Swap orders from parents after the crossover point
-                    swapOrders(parents, offspring, crossoverPoint);
-
-                } else {
-
-                    // 2.2 Swap aisles from parents after the crossover point
-                    swapAisles(parents, offspring, crossoverPoint-totalOrdersNumber-1);
-                    // if crossover = #orders => crossoverPoint-totalOrdersNumber-1 = -1 => exchange aisles and orders subsets
-                }
+                // 2. Swap aisles from parents
+                swapAisles(parents, offspring);
 
             }
 
             return offspring;
         }
 
-        private List<WaveSolution> doOrdersUnionCrossover(double probability, List<WaveSolution> parents) {
+        private List<WaveSolution> doOrdersUnionCrossover(List<WaveSolution> parents) {
             List<WaveSolution> offspring = new ArrayList<>(2);
             offspring.add(parents.get(0).copy());
             offspring.add(parents.get(1).copy());
 
-            if (random.nextDouble() < probability) {
+            if (random.nextDouble() < crossoverProbability) {
 
-                // 1. Calculate the point to make the crossover
-                int crossoverPoint = random.nextInt(totalAislesNumber-1);
-
-                // 2 Swap aisles from parents after the crossover point
-                swapAisles(parents, offspring, crossoverPoint);
+                // 1. Swap aisles from parents
+                swapAisles(parents, offspring);
                 
-                // 3 Set orders subset as the union of both parents' orders
+                // 2. Set orders subset as the union of both parents' orders
                 computeOrdersUnion(parents, offspring);
 
             }
@@ -161,14 +144,14 @@ public class GeneticAlgorithmRunner {
             return offspring;
         }
 
-
-        private void swapAisles(List<WaveSolution> parents, List<WaveSolution> offspring, int crossoverPoint) {
+        private void swapAisles(List<WaveSolution> parents, List<WaveSolution> offspring) {
 
             for (int k = 0; k < 2; k++) { // for each parent
                 for (int i = 0; i < parents.get(k).getAisles().size(); i++) { // for each aisle in parent k
                     int aisleId = parents.get(k).getAisles().get(i);
-                    if (aisleId > crossoverPoint && // aisle is after crossover point
-                        !parents.get(1-k).getAisles().contains(aisleId) // skip if aisle is already in both parents
+                    if (!parents.get(1-k).getAisles().contains(aisleId) // skip if aisle is already in both parents
+                        // && aisleId > crossoverPoint // aisle is after crossover point
+                        && random.nextDouble() < 0.5 // half chance to swap
                     ) {
                         offspring.get(k).removeAisle(aisleId);
                         offspring.get(1-k).addAisle(aisleId);
@@ -178,13 +161,14 @@ public class GeneticAlgorithmRunner {
             }
         }
 
-        private void swapOrders(List<WaveSolution> parents, List<WaveSolution> offspring, int crossoverPoint) {
+        private void swapOrders(List<WaveSolution> parents, List<WaveSolution> offspring) {
 
             for (int k = 0; k < 2; k++) { // for each parent
                 for (int i = 0; i < parents.get(k).getOrders().size(); i++) { // for each aisle in parent k
                     int orderId = parents.get(k).getOrders().get(i);
-                    if (orderId > crossoverPoint && // aisle is after crossover point
-                        !parents.get(1-k).getOrders().contains(orderId) // skip if aisle is already in both parents
+                    if (!parents.get(1-k).getOrders().contains(orderId) // skip if aisle is already in both parents
+                        // && orderId > crossoverPoint // aisle is after crossover point
+                        && random.nextDouble() < 0.5 // half chance to swap
                     ) {
                         offspring.get(k).removeOrder(orderId);
                         offspring.get(1-k).addOrder(orderId);
@@ -222,18 +206,19 @@ public class GeneticAlgorithmRunner {
         }
     }
 
-    private static class BitFlipMutation implements MutationOperator<WaveSolution> {
+    static class BitFlipMutation implements MutationOperator<WaveSolution> {
         
         private double mutationProbability;
         private Random random;
         private int totalOrdersNumber;
         private int totalAislesNumber;
 
-        public BitFlipMutation(double mutationProbability, Random random, int totalOrdersNumber, int totalAislesNumber) {
-            this.mutationProbability = mutationProbability;
+        public BitFlipMutation(double mutationProbability, WavePickingProblem problem, Random random) {
             this.random = random;
-            this.totalOrdersNumber = totalOrdersNumber;
-            this.totalAislesNumber = totalAislesNumber;
+            this.totalOrdersNumber = problem.orders.size();
+            this.totalAislesNumber = problem.aisles.size();
+            this.mutationProbability = mutationProbability == -1 ? 1.0 / (totalOrdersNumber + totalAislesNumber) : mutationProbability;
+            // -1: set default value
         }
 
         @Override
@@ -275,7 +260,7 @@ public class GeneticAlgorithmRunner {
 
     }
 
-    private static class BinaryTournamentSelection implements SelectionOperator<List<WaveSolution>,WaveSolution> {
+    static class BinaryTournamentSelection implements SelectionOperator<List<WaveSolution>,WaveSolution> {
         private Random random;
 
         public BinaryTournamentSelection(Random random) {

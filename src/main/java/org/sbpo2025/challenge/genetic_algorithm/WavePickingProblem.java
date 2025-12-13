@@ -277,7 +277,10 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
 
         List<Integer> selectedOrders = new ArrayList<>();
 
-        for (Item item : items) { // for item
+        List<Item> shuffledItems = new ArrayList<>(items);
+        Collections.shuffle(shuffledItems, random);
+
+        for (Item item : shuffledItems) { // for item
 
             List<Map.Entry<Integer, Integer>> shuffledItemOrders = new ArrayList<>(item.orders.entrySet());
             Collections.shuffle(shuffledItemOrders, random); // shuffle orders with this item
