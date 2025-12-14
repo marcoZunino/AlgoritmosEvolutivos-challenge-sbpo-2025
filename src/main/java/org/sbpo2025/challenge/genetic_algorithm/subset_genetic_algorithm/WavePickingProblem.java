@@ -1,4 +1,4 @@
-package org.sbpo2025.challenge.genetic_algorithm;
+package org.sbpo2025.challenge.genetic_algorithm.subset_genetic_algorithm;
 
 import java.util.List;
 import java.util.Map;
@@ -9,15 +9,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import org.sbpo2025.challenge.Item;
-import org.uma.jmetal.problem.AbstractGenericProblem;
+import org.sbpo2025.challenge.genetic_algorithm.AbstractWavePickingProblem;
 
-public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
+public class WavePickingProblem extends AbstractWavePickingProblem<WaveSolution> {
 
-    protected List<Map<Integer, Integer>> orders;
-    protected List<Map<Integer, Integer>> aisles;
-    protected List<Item> items;
-    protected int waveSizeLB;
-    protected int waveSizeUB;
     protected Random random;
     protected boolean showOutput;
     protected boolean warmStart;
@@ -31,12 +26,8 @@ public class WavePickingProblem extends AbstractGenericProblem<WaveSolution> {
       int waveSizeUB,
       Random random
     ) {
-    
-      this.orders = orders;
-      this.aisles = aisles;
-      this.waveSizeLB = waveSizeLB;
-      this.waveSizeUB = waveSizeUB;
-      this.items = items;
+        
+      super(orders, aisles, items, waveSizeLB, waveSizeUB);
       
       this.random = random;
       this.waveSizePenalty = orders.size() - waveSizeLB/aisles.size(); // default penalty

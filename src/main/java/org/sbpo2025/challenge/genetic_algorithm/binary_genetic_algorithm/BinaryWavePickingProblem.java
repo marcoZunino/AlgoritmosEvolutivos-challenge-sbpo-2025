@@ -1,4 +1,4 @@
-package org.sbpo2025.challenge.binary_genetic_algorithm;
+package org.sbpo2025.challenge.genetic_algorithm.binary_genetic_algorithm;
 
 import java.util.List;
 import java.util.Map;
@@ -7,16 +7,12 @@ import java.util.stream.Collectors;
 import java.util.Arrays;
 
 import org.sbpo2025.challenge.Item;
-import org.uma.jmetal.problem.binaryproblem.impl.AbstractBinaryProblem;
+import org.sbpo2025.challenge.genetic_algorithm.AbstractWavePickingProblem;
 import org.uma.jmetal.solution.binarysolution.BinarySolution;
+import org.uma.jmetal.solution.binarysolution.impl.DefaultBinarySolution;
 
-public class BinaryWavePickingProblem extends AbstractBinaryProblem {
+public class BinaryWavePickingProblem extends AbstractWavePickingProblem<BinarySolution> {
 
-    protected List<Map<Integer, Integer>> orders;
-    protected List<Map<Integer, Integer>> aisles;
-    protected List<Item> items;
-    protected int waveSizeLB;
-    protected int waveSizeUB;
     protected Random random;
     protected boolean showOutput;
 
@@ -30,11 +26,7 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
       Random random
     ) {
     
-      this.orders = orders;
-      this.aisles = aisles;
-      this.waveSizeLB = waveSizeLB;
-      this.waveSizeUB = waveSizeUB;
-      this.items = items;
+      super(orders, aisles, items, waveSizeLB, waveSizeUB);
       
       this.random = random;
       this.waveSizePenalty = orders.size() - waveSizeLB/aisles.size(); // default penalty
@@ -54,9 +46,27 @@ public class BinaryWavePickingProblem extends AbstractBinaryProblem {
         this.showOutput = true;
     }
 
-    @Override
     public List<Integer> getListOfBitsPerVariable() {
         return Arrays.asList(orders.size(), aisles.size());
+    }
+
+    
+    public int getBitsFromVariable(int index) {
+      return getListOfBitsPerVariable().get(index) ;
+    }
+
+    public int getTotalNumberOfBits() {
+    	int count = 0 ;
+    	for (int i = 0; i < this.getNumberOfVariables(); i++) {
+    		count += this.getListOfBitsPerVariable().get(i) ;
+    	}
+    
+    	return count ;
+    }
+
+    @Override
+    public BinarySolution createSolution() {
+      return new DefaultBinarySolution(getListOfBitsPerVariable(), getNumberOfObjectives())  ;
     }
 
     @Override

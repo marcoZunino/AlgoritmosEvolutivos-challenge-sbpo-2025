@@ -1,8 +1,8 @@
 package org.sbpo2025.challenge;
 
 import org.apache.commons.lang3.time.StopWatch;
-import org.sbpo2025.challenge.binary_genetic_algorithm.BinaryGeneticAlgorithmRunner;
-import org.sbpo2025.challenge.genetic_algorithm.GeneticAlgorithmRunner;
+import org.sbpo2025.challenge.genetic_algorithm.binary_genetic_algorithm.BinaryGeneticAlgorithmRunner;
+import org.sbpo2025.challenge.genetic_algorithm.subset_genetic_algorithm.GeneticAlgorithmRunner;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -169,7 +169,7 @@ public class ChallengeSolver {
                 
                 if (showOutput) System.out.println("Objective value = " + partialResult.objValue());
                 
-                if (!isSolutionFeasible(partialResult.partialSolution()) && partialResult.objValue() > bestSolution.objValue()) {
+                if (isSolutionFeasible(partialResult.partialSolution()) && partialResult.objValue() > bestSolution.objValue()) {
                     bestSolution = partialResult; // update best solution
                 }
             }

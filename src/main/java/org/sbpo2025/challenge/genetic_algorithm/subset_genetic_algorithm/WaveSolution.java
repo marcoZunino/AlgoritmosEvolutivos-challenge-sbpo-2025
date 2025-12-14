@@ -1,4 +1,4 @@
-package org.sbpo2025.challenge.genetic_algorithm;
+package org.sbpo2025.challenge.genetic_algorithm.subset_genetic_algorithm;
 
 import java.util.ArrayList;
 import java.util.List;

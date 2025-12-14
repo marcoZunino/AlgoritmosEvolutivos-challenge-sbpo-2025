@@ -1,4 +1,4 @@
-package org.sbpo2025.challenge.binary_genetic_algorithm;
+package org.sbpo2025.challenge.genetic_algorithm.binary_genetic_algorithm;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +10,7 @@ import org.sbpo2025.challenge.ChallengeSolver;
 import org.sbpo2025.challenge.Item;
 import org.uma.jmetal.algorithm.impl.AbstractGeneticAlgorithm;
 import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.GenerationalGeneticAlgorithm;
-import org.uma.jmetal.operator.crossover.impl.SinglePointCrossover;
+import org.uma.jmetal.operator.crossover.impl.HUXCrossover;
 import org.uma.jmetal.operator.mutation.impl.BitFlipMutation;
 import org.uma.jmetal.operator.selection.impl.BinaryTournamentSelection;
 import org.uma.jmetal.solution.binarysolution.BinarySolution;
@@ -47,7 +47,7 @@ public class BinaryGeneticAlgorithmRunner {
         
         // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));        
 
-        SinglePointCrossover crossover = new SinglePointCrossover(crossoverProbability);
+        HUXCrossover crossover = new HUXCrossover(crossoverProbability);
         BitFlipMutation mutation = new BitFlipMutation(mutationProbability);
         BinaryTournamentSelection<BinarySolution> selection = new BinaryTournamentSelection<>();
         SolutionListEvaluator<BinarySolution> evaluator = new SequentialSolutionListEvaluator<>();

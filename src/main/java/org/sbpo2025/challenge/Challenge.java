@@ -15,11 +15,11 @@ import java.util.Map;
 
 public class Challenge {
 
-    private List<Map<Integer, Integer>> orders;
-    private List<Map<Integer, Integer>> aisles;
-    private int nItems;
-    private int waveSizeLB;
-    private int waveSizeUB;
+    public List<Map<Integer, Integer>> orders;
+    public List<Map<Integer, Integer>> aisles;
+    public int nItems;
+    public int waveSizeLB;
+    public int waveSizeUB;
 
     public void readInput(String inputFilePath) {
         try {
@@ -163,20 +163,6 @@ public class Challenge {
         StopWatch stopWatch = StopWatch.createStarted();
         Map<String, Object> params = new HashMap<>();
 
-
-        if (args.length == 0) {
-
-            String defaultInstance = "b/instance_0002.txt"; // Default instance number
-
-            params.put("algorithm", "genetic");
-
-            args = new String[]{
-                    "datasets/"+defaultInstance,                    
-            };
-        }
-
-        String inputFilePath = args[0];
-
         // Usage: 
         // java -jar target/ChallengeSBPO2025-1.0.jar ...
         // 	<inputfile>
@@ -185,6 +171,20 @@ public class Challenge {
         // 	[steadyState|generational] [binaryEncoding] [defaultCrossover] [randomStart]
         // 	params:
         // <randomSeed>/<iterations>/<generations>/<populationSize>/<crossoverProbability>/[mutationProbability]
+
+        if (args.length == 0) {
+
+            String defaultInstance = "b/instance_0008.txt"; // Default instance number
+
+            args = new String[]{
+                    "datasets/"+defaultInstance,
+                    // "genetic", "generational", "params:629/1/5/10/0.9",
+                    "greedy",
+                    "showOutput",
+            };
+        }
+
+        String inputFilePath = args[0];
 
         if (Arrays.asList(args).contains("genetic")) {
             
@@ -210,8 +210,8 @@ public class Challenge {
 
         String[] split = inputFilePath.split("/");
         String instance = split[split.length-1];
-        System.out.println("Processing instance: " + instance);
         String dataset = split[split.length-2];
+        System.out.printf("Processing instance: %s/%s%n", dataset, instance);
 
         var challengeSolver = new ChallengeSolver(
                 challenge.orders, challenge.aisles, challenge.nItems, challenge.waveSizeLB, challenge.waveSizeUB);
