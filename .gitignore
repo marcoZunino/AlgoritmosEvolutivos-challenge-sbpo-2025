@@ -2,3 +2,10 @@
 .DS_Store
 /target/
 datasets/out
+stats
+experimentResults
+output/genetic
+jMetal.log
+settings.json
+checker.cpython-310.pyc
+instance.cpython-310.pyc
