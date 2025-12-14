@@ -2,7 +2,6 @@ package org.sbpo2025.challenge.genetic_algorithm.subset_genetic_algorithm;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.sbpo2025.challenge.ChallengeSolution;
@@ -31,14 +30,14 @@ public class GeneticAlgorithmRunner {
         int waveSizeLB = solver.waveSizeLB;
         int waveSizeUB = solver.waveSizeUB;
 
-        Random random = new Random((long) params.getOrDefault("randomSeed", 1234L));
+        long randomSeed = (long) params.getOrDefault("randomSeed", 1234L);
         double mutationProbability = (double) params.getOrDefault("mutationProbability", 1.0/(orders.size() + aisles.size()));
         double crossoverProbability = (double) params.getOrDefault("crossoverProbability", 0.9);
 
         int populationSize = (int) params.getOrDefault("populationSize", 100);
         int maxEvaluations = populationSize * (int) params.getOrDefault("generations", 100);
 
-        WavePickingProblem problem = new WavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
+        WavePickingProblem problem = new WavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, randomSeed);
 
         if (!(boolean) params.getOrDefault("warmStart", true)) problem.randomStart();
 
@@ -49,9 +48,9 @@ public class GeneticAlgorithmRunner {
 
         // problem.setWaveSizePenalty((double) params.getOrDefault("waveSizePenalty", 10));        
 
-        CrossoverOperator<WaveSolution> crossover = new WaveUniformCrossover(crossoverProbability, (boolean) params.getOrDefault("ordersUnionCrossover", true), random);
-        MutationOperator<WaveSolution> mutation = new WaveBitFlipMutation(mutationProbability, problem.orders.size(), problem.aisles.size(), random);
-        SelectionOperator<List<WaveSolution>,WaveSolution> selection = new WaveTournamentSelection<>(random);
+        CrossoverOperator<WaveSolution> crossover = new WaveUniformCrossover(crossoverProbability, (boolean) params.getOrDefault("ordersUnionCrossover", true), problem.random);
+        MutationOperator<WaveSolution> mutation = new WaveBitFlipMutation(mutationProbability, problem.orders.size(), problem.aisles.size(), problem.random);
+        SelectionOperator<List<WaveSolution>,WaveSolution> selection = new WaveTournamentSelection<>(problem.random);
 
         AbstractGeneticAlgorithm<WaveSolution, WaveSolution> algorithm = null;
 

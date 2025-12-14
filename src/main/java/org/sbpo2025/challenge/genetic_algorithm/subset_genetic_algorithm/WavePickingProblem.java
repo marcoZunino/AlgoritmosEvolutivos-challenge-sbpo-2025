@@ -2,7 +2,6 @@ package org.sbpo2025.challenge.genetic_algorithm.subset_genetic_algorithm;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import org.sbpo2025.challenge.genetic_algorithm.AbstractWavePickingProblem;
 
 public class WavePickingProblem extends AbstractWavePickingProblem<WaveSolution> {
 
-    protected Random random;
     protected boolean showOutput;
     protected boolean warmStart;
 
@@ -24,12 +22,11 @@ public class WavePickingProblem extends AbstractWavePickingProblem<WaveSolution>
       List<Item> items,
       int waveSizeLB,
       int waveSizeUB,
-      Random random
+      long randomSeed
     ) {
         
-      super(orders, aisles, items, waveSizeLB, waveSizeUB);
+      super(orders, aisles, items, waveSizeLB, waveSizeUB, randomSeed);
       
-      this.random = random;
       this.waveSizePenalty = orders.size() - waveSizeLB/aisles.size(); // default penalty
       this.showOutput = false;
       this.warmStart = true;

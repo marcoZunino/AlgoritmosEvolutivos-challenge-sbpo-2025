@@ -1,7 +1,6 @@
 package org.sbpo2025.challenge.experiments;
 
 import java.util.List;
-import java.util.Random;
 
 import org.sbpo2025.challenge.genetic_algorithm.AbstractWavePickingProblem;
 import org.sbpo2025.challenge.genetic_algorithm.binary_genetic_algorithm.BinaryWavePickingProblem;
@@ -42,7 +41,7 @@ public class ExperimentsFactory {
         CrossoverType crossoverType,
         StartType startType
     ) {
-        Random random = new Random(randomSeed);
+        problem.setRandomSeed(randomSeed);
 
         CrossoverOperator<S> crossover; MutationOperator <S> mutation; SelectionOperator<List<S>,S> selection;
 
@@ -73,9 +72,9 @@ public class ExperimentsFactory {
                 crossover = (CrossoverOperator<S>) new WaveUniformCrossover(cxProb, switch (crossoverType) {
                     case ORDERS_UNION -> true;
                     case DEFAULT -> false;
-                }, random);
-                mutation = (MutationOperator<S>) new WaveBitFlipMutation(mutProb, problem.orders.size(), problem.aisles.size(), random);
-                selection = new WaveTournamentSelection<>(random);
+                }, problem.random);
+                mutation = (MutationOperator<S>) new WaveBitFlipMutation(mutProb, problem.orders.size(), problem.aisles.size(), problem.random);
+                selection = new WaveTournamentSelection<>(problem.random);
 
                 break;
 

@@ -2,7 +2,6 @@ package org.sbpo2025.challenge.genetic_algorithm.binary_genetic_algorithm;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.sbpo2025.challenge.ChallengeSolution;
@@ -30,7 +29,7 @@ public class BinaryGeneticAlgorithmRunner {
         int waveSizeLB = solver.waveSizeLB;
         int waveSizeUB = solver.waveSizeUB;
         
-        Random random = new Random((long) params.getOrDefault("randomSeed", 1234L));
+        long randomSeed = (long) params.getOrDefault("randomSeed", 1234L);
         double mutationProbability = (double) params.getOrDefault("mutationProbability", 1.0/(orders.size() + aisles.size()));
         double crossoverProbability = (double) params.getOrDefault("crossoverProbability", 0.9);
 
@@ -38,7 +37,7 @@ public class BinaryGeneticAlgorithmRunner {
         int maxEvaluations = populationSize * (int) params.getOrDefault("generations", 100);
 
 
-        BinaryWavePickingProblem problem = new BinaryWavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, random);
+        BinaryWavePickingProblem problem = new BinaryWavePickingProblem(orders, aisles, items, waveSizeLB, waveSizeUB, randomSeed);
         
         if ((boolean) params.getOrDefault("showOutput", false)) {
             problem.showOutput();
