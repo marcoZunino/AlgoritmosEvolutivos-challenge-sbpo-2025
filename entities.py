@@ -1,6 +1,8 @@
 import os
 import json
-import pandas as pd
+import time
+import subprocess
+
 
 from checker import WaveOrderPicking
 
@@ -124,12 +126,21 @@ class Experiment:
         "crossover_rate" : 0.9,
         "mutation_rate" : 0.001,
         "initial_seed" : 12345,
-        "iterations" : 1
+        "iterations" : 1,
+        # "encoding": "subset",
+        # "crossover_type": "orders_union",
+        # "start" : "warm_start"
+    }
+
+    algo_map = {
+        "gGA": ["genetic", "generational"],
+        "ssGA": ["genetic", "steadyState"],
+        "greedy": ["greedy"]
     }
     
     checker = WaveOrderPicking()
 
-    def __init__(self, batch_name, instance, algorithm, run_id, feasibility=None, objective_value=None, execution_time=None):
+    def __init__(self, batch_name, instance, algorithm, run_id):
         
         self.batch_name = batch_name
         self.instance = instance
@@ -141,30 +152,205 @@ class Experiment:
         
         self.run_id =run_id
 
-        self.feasibility = feasibility
-        self.objective_value = objective_value
-        self.execution_time = execution_time
+        self.feasibility = None
+        self.objective_value = None
+        self.execution_time = None
     
     def set_param(self, param_name, param_value):
         self.parameters[param_name] = param_value
+    
+    @property
+    def seed(self):
+        return self.parameters["initial_seed"] + self.run_id
 
-    def run():
-        pass # TODO
+
+    def run(self, show_output=False):
+        
+        if self.compute_result():
+            return
+
+        # Ensure output directory exists
+        out_dir = os.path.dirname(self.solution_file)
+        os.makedirs(out_dir, exist_ok=True)
+
+        # Build parameter string for the Java solver
+        # Example: params:629/1/10/60/0.9
+        params = f"params:{self.seed}/" \
+                 f"{self.parameters['iterations']}/" \
+                 f"{self.parameters['generations']}/" \
+                 f"{self.parameters['population_size']}/" \
+                 f"{self.parameters['crossover_rate']}/" \
+                 f"{self.parameters['mutation_rate']}"
+
+        # Build algorithm mode
+        # "gGA" → "genetic generational"
+        # "ssGA" → "genetic steadyState"
+        # "greedy" → "greedy"
+
+        algo_args = Experiment.algo_map[self.algorithm]
+
+        # Build full command
+        cmd = [
+            "java", "-jar", "target/ChallengeSBPO2025-1.0.jar",
+            self.instance.input_file,
+            *algo_args,
+            params,
+            f"output:{self.solution_file}"
+        ]
+
+        if show_output:
+            cmd.append("showOutput")
+
+        if self.encoding == "binary":
+            cmd.append("binaryEncoding")
+        
+        if self.crossover_type == "default":
+            cmd.append("defaultCrossover")
+
+        if self.start == "random":
+            cmd.append("randomStart")
+
+        # Run solver and measure time
+        start = time.time()
+        print(cmd)
+        subprocess.run(cmd, check=True)
+        end = time.time()
+
+        self.execution_time = end - start
+
+        self.compute_result()
 
     def compute_result(self):
-        result = Experiment.checker.check_result(self.instance.input_file, self.solution_file)
+
+        try:
+            with open(self.result_file, "r") as f:
+                data = json.load(f)
+                self.feasibility = data["feasibility"]
+                self.objective_value = data["objective_value"]
+                self.execution_time = data["execution_time"]
+            return True
+        except:
+            try:
+                result = Experiment.checker.check_result(self.instance.input_file, self.solution_file)
+            except:
+                return False
+        
         self.feasibility = result["is_feasible"]
         if self.feasibility:
             self.objective_value = result["objective_value"]
 
+        os.makedirs(os.path.dirname(self.result_file), exist_ok=True)
+
+        file_path = self.result_file
+
+        data = {
+            "objective_value": self.objective_value,
+            "feasibility": self.feasibility,
+            "execution_time": self.execution_time
+        }
+
+        # Save JSON
+        with open(file_path, "w") as f:
+            json.dump(data, f, indent=4)
+
+        return True
+        
+    @property
+    def encoding(self):
+        return self.parameters.get("encoding", None) # None / "subset" / "binary"
+    
+    @property
+    def crossover_type(self):
+        return self.parameters.get("crossover_type", None) # None / "orders_union" / "default"
+    
+    @property
+    def start(self):
+        return self.parameters.get("start", None) # None / "warm" / "random"
+
     @property
     def solution_file(self):
-        return os.path.join("experiments", self.batch_name, f"{self.instance.dataset}_{self.instance.id}", f"{self.algorithm}_{self.parameters_string()}_run{self.run_id}.txt")
+        return os.path.join("experiments", self.batch_name, "solutions", f"{self.instance.dataset}_{self.instance.id}", f"{self.algorithm}_{self.parameters_string()}", f"run{self.run_id}.txt")
+    
+    @property
+    def result_file(self):
+        return os.path.join("experiments", self.batch_name, "results", f"{self.instance.dataset}_{self.instance.id}", f"{self.algorithm}_{self.parameters_string()}", f"run{self.run_id}.json")
     
     def __str__(self):
         return f"Experiment(batch: {self.batch_name}, instance: {self.instance.dataset}/{self.instance.id}, algorithm: {self.algorithm}, run: {self.run_id}, feasibility: {self.feasibility}, objective_value: {self.objective_value}, execution_time: {self.execution_time})"
     
     def parameters_string(self):
-        return f"gen{self.parameters['generations']}_pop{self.parameters['population_size']}_cr{self.parameters['crossover_rate']}_mr{self.parameters['mutation_rate']}"
+        string = ""
+        if self.encoding is not None:
+            string += f"{self.encoding}_"
+        if self.crossover_type is not None:
+            string += f"{self.crossover_type}_"
+        if self.start is not None:
+            string += f"{self.start}_"
+        string += f"gen{self.parameters['generations']}_pop{self.parameters['population_size']}_cr{self.parameters['crossover_rate']}_mr{self.parameters['mutation_rate']}"
+        return string
     
 
+
+
+datasets = {"a": {}, "b": {}, "x": {}}
+instances = {}
+
+
+for dataset in ["a", "b", "x"]:
+    for file in os.listdir(f"datasets/{dataset}"):
+        instanceId = file.split("_")[1].split(".")[0]
+        instance = Instance(dataset, instanceId, f"datasets/{dataset}/{file}")
+        instances[f"{dataset}/{instanceId}"] = instance
+        datasets[dataset][instanceId] = instance
+
+experiment_instances = {
+    "a": [i for i in datasets["a"].values() if i.id in ["0001", "0004", "0009", "0017", "0019"]],
+    "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0005", "0007", "0009"]],
+    "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0006", "0007", "0008"]]
+}
+
+
+experiments = {}
+Experiment.default_parameters = {
+        "generations" : 50,
+        "population_size" : 60,
+        "crossover_rate" : 0.9,
+        "mutation_rate" : 0.001,
+        "initial_seed" : 0,
+        "iterations" : 1
+    }
+independent_runs = 10
+
+
+algorithms = ["ssGA", "gGA"]
+batch1 = "algorithm_configuration"
+dataset = "a"
+
+
+batch_name = os.path.join(batch1, "encoding")
+encodings = ["subset", "binary"]
+experiments[batch_name] = []
+
+
+for instance in experiment_instances[dataset]:
+    for algorithm in algorithms:
+        for encoding in encodings:
+            for run in range(independent_runs):
+                exp = Experiment(batch_name, instance, algorithm, run)
+                exp.set_param("encoding", encoding)
+                experiments[batch_name].append(exp)
+
+
+# print(*[exp.solution_file for exp in experiments[batch_name]], sep="\n")
+
+id = 120
+# experiments[batch_name][id].run(False)
+
+# print(experiments[batch_name][id].solution_file)
+# print(experiments[batch_name][id].execution_time)
+
+
+max_generations = 100
+step = 5
+for g in range(5, max_generations+1, step):
+    print(g)

@@ -117,7 +117,6 @@ public class Challenge {
         for (String arg : args) {
             if (arg.startsWith("params:")) {
                 paramsArg = arg;
-                break;
             }
         }
 
@@ -202,6 +201,14 @@ public class Challenge {
             params.put("algorithm", "greedy");
         }
 
+        String outputFilePath = null;
+        for (String arg : args) {
+            if (arg.startsWith("output:")) {
+                outputFilePath = arg.substring("output:".length());
+                break;
+            }
+        }
+
         params.put("showStats", Arrays.asList(args).contains("showStats"));
         params.put("showOutput", Arrays.asList(args).contains("showOutput"));
 
@@ -218,7 +225,7 @@ public class Challenge {
 
         ChallengeSolution challengeSolution = challengeSolver.solve(stopWatch, params);
         
-        String outputFilePath = String.format("output/%s/%s/%s", params.getOrDefault("algorithm", "greedy"), dataset, instance);
+        if (outputFilePath == null) outputFilePath = String.format("output/%s/%s/%s", params.getOrDefault("algorithm", "greedy"), dataset, instance);
         challenge.writeOutput(challengeSolution, outputFilePath);
         
     }
