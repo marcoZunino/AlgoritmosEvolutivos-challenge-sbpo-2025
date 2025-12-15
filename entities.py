@@ -24,6 +24,7 @@ class Instance:
         self.mean_items_per_order = 0
         self.experiments = []
         self.best_result = None
+        self.greedy_result = None
         
         try:
             self.read_stats()
@@ -292,65 +293,65 @@ class Experiment:
 
 
 
-datasets = {"a": {}, "b": {}, "x": {}}
-instances = {}
+# datasets = {"a": {}, "b": {}, "x": {}}
+# instances = {}
 
 
-for dataset in ["a", "b", "x"]:
-    for file in os.listdir(f"datasets/{dataset}"):
-        instanceId = file.split("_")[1].split(".")[0]
-        instance = Instance(dataset, instanceId, f"datasets/{dataset}/{file}")
-        instances[f"{dataset}/{instanceId}"] = instance
-        datasets[dataset][instanceId] = instance
+# for dataset in ["a", "b", "x"]:
+#     for file in os.listdir(f"datasets/{dataset}"):
+#         instanceId = file.split("_")[1].split(".")[0]
+#         instance = Instance(dataset, instanceId, f"datasets/{dataset}/{file}")
+#         instances[f"{dataset}/{instanceId}"] = instance
+#         datasets[dataset][instanceId] = instance
 
-experiment_instances = {
-    "a": [i for i in datasets["a"].values() if i.id in ["0001", "0004", "0009", "0017", "0019"]],
-    "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0005", "0007", "0009"]],
-    "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0006", "0007", "0008"]]
-}
-
-
-experiments = {}
-Experiment.default_parameters = {
-        "generations" : 50,
-        "population_size" : 60,
-        "crossover_rate" : 0.9,
-        "mutation_rate" : 0.001,
-        "initial_seed" : 0,
-        "iterations" : 1
-    }
-independent_runs = 10
+# experiment_instances = {
+#     "a": [i for i in datasets["a"].values() if i.id in ["0001", "0004", "0009", "0017", "0019"]],
+#     "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0005", "0007", "0009"]],
+#     "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0006", "0007", "0008"]]
+# }
 
 
-algorithms = ["ssGA", "gGA"]
-batch1 = "algorithm_configuration"
-dataset = "a"
+# experiments = {}
+# Experiment.default_parameters = {
+#         "generations" : 50,
+#         "population_size" : 60,
+#         "crossover_rate" : 0.9,
+#         "mutation_rate" : 0.001,
+#         "initial_seed" : 0,
+#         "iterations" : 1
+#     }
+# independent_runs = 10
 
 
-batch_name = os.path.join(batch1, "encoding")
-encodings = ["subset", "binary"]
-experiments[batch_name] = []
+# algorithms = ["ssGA", "gGA"]
+# batch1 = "algorithm_configuration"
+# dataset = "a"
 
 
-for instance in experiment_instances[dataset]:
-    for algorithm in algorithms:
-        for encoding in encodings:
-            for run in range(independent_runs):
-                exp = Experiment(batch_name, instance, algorithm, run)
-                exp.set_param("encoding", encoding)
-                experiments[batch_name].append(exp)
+# batch_name = os.path.join(batch1, "encoding")
+# encodings = ["subset", "binary"]
+# experiments[batch_name] = []
 
 
-# print(*[exp.solution_file for exp in experiments[batch_name]], sep="\n")
+# for instance in experiment_instances[dataset]:
+#     for algorithm in algorithms:
+#         for encoding in encodings:
+#             for run in range(independent_runs):
+#                 exp = Experiment(batch_name, instance, algorithm, run)
+#                 exp.set_param("encoding", encoding)
+#                 experiments[batch_name].append(exp)
 
-id = 120
-# experiments[batch_name][id].run(False)
 
-# print(experiments[batch_name][id].solution_file)
-# print(experiments[batch_name][id].execution_time)
+# # print(*[exp.solution_file for exp in experiments[batch_name]], sep="\n")
+
+# id = 120
+# # experiments[batch_name][id].run(False)
+
+# # print(experiments[batch_name][id].solution_file)
+# # print(experiments[batch_name][id].execution_time)
 
 
-max_generations = 100
-step = 5
-for g in range(5, max_generations+1, step):
-    print(g)
+# max_generations = 100
+# step = 5
+# for g in range(5, max_generations+1, step):
+#     print(g)
