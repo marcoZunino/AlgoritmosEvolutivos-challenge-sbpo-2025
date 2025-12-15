@@ -174,6 +174,20 @@ class Experiment:
         out_dir = os.path.dirname(self.solution_file)
         os.makedirs(out_dir, exist_ok=True)
 
+        cmd = self.run_cmd(show_output)
+
+        # Run solver and measure time
+        start = time.time()
+        print(cmd)
+        subprocess.run(cmd, check=True)
+        end = time.time()
+
+        self.execution_time = end - start
+
+        self.compute_result()
+
+    def run_cmd(self, show_output=False):
+
         # Build parameter string for the Java solver
         # Example: params:629/1/10/60/0.9
         params = f"params:{self.seed}/" \
@@ -187,39 +201,21 @@ class Experiment:
         # "gGA" → "genetic generational"
         # "ssGA" → "genetic steadyState"
         # "greedy" → "greedy"
-
         algo_args = Experiment.algo_map[self.algorithm]
 
         # Build full command
         cmd = [
             "java", "-jar", "target/ChallengeSBPO2025-1.0.jar",
-            self.instance.input_file,
-            *algo_args,
-            params,
-            f"output:{self.solution_file}"
+            self.instance.input_file, *algo_args, params, f"output:{self.solution_file}"
         ]
 
-        if show_output:
-            cmd.append("showOutput")
+        if show_output: cmd.append("showOutput")
+        if self.encoding == "binary": cmd.append("binaryEncoding")
+        if self.crossover_type == "default": cmd.append("defaultCrossover")
+        if self.start == "random": cmd.append("randomStart")
 
-        if self.encoding == "binary":
-            cmd.append("binaryEncoding")
+        return cmd
         
-        if self.crossover_type == "default":
-            cmd.append("defaultCrossover")
-
-        if self.start == "random":
-            cmd.append("randomStart")
-
-        # Run solver and measure time
-        start = time.time()
-        print(cmd)
-        subprocess.run(cmd, check=True)
-        end = time.time()
-
-        self.execution_time = end - start
-
-        self.compute_result()
 
     def compute_result(self):
 
@@ -306,52 +302,32 @@ class Experiment:
 
 # experiment_instances = {
 #     "a": [i for i in datasets["a"].values() if i.id in ["0001", "0004", "0009", "0017", "0019"]],
-#     "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0005", "0007", "0009"]],
-#     "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0006", "0007", "0008"]]
+#     "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0007", "0009"]],
+#     "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0007", "0008"]]
 # }
 
 
 # experiments = {}
-# Experiment.default_parameters = {
-#         "generations" : 50,
-#         "population_size" : 60,
-#         "crossover_rate" : 0.9,
-#         "mutation_rate" : 0.001,
-#         "initial_seed" : 0,
-#         "iterations" : 1
-#     }
 # independent_runs = 10
 
 
-# algorithms = ["ssGA", "gGA"]
-# batch1 = "algorithm_configuration"
-# dataset = "a"
+# batch_name = "parameter_tuning"
+# algorithm = "ssGA"
 
+# cx_probs = [0.9, 1.0]
+# mut_probs = [0.01, 0.001, 0.0001]
+# pop_sizes = [40, 60, 80]
 
-# batch_name = os.path.join(batch1, "encoding")
-# encodings = ["subset", "binary"]
 # experiments[batch_name] = []
 
-
-# for instance in experiment_instances[dataset]:
-#     for algorithm in algorithms:
-#         for encoding in encodings:
-#             for run in range(independent_runs):
-#                 exp = Experiment(batch_name, instance, algorithm, run)
-#                 exp.set_param("encoding", encoding)
-#                 experiments[batch_name].append(exp)
-
-
-# # print(*[exp.solution_file for exp in experiments[batch_name]], sep="\n")
-
-# id = 120
-# # experiments[batch_name][id].run(False)
-
-# # print(experiments[batch_name][id].solution_file)
-# # print(experiments[batch_name][id].execution_time)
-
-
-# max_generations = 100
-# step = 5
-# for g in range(5, max_generations+1, step):
-#     print(g)
+# for instance in [i for i in experiment_instances["b"] if i.id in ["0003", "0007", "0009"]]:
+#     for c in cx_probs:
+#         for m in mut_probs:
+#             for p in pop_sizes:
+#                 for run in range(independent_runs):
+#                     exp = Experiment(batch_name, instance, algorithm, run)
+#                     exp.set_param("crossover_rate", c)
+#                     exp.set_param("mutation_rate", m)
+#                     exp.set_param("population_size", p)
+#                     experiments[batch_name].append(exp)
+    
