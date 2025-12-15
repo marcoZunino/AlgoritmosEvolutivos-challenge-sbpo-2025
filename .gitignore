@@ -8,4 +8,6 @@ output/genetic
 jMetal.log
 settings.json
 checker.cpython-310.pyc
-instance.cpython-310.pyc
+checker.cpython-312.pyc
+entities.cpython-310.pyc
+utils.cpython-310.pyc

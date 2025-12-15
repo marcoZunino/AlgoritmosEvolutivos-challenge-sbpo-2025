@@ -2,6 +2,8 @@ import os
 import json
 import pandas as pd
 
+from checker import WaveOrderPicking
+
 class Instance:
 
     def __init__(self, dataset, id, input_file):
@@ -18,6 +20,8 @@ class Instance:
         self.mean_order_size = 0
         self.mean_items_per_aisle = 0
         self.mean_items_per_order = 0
+        self.experiments = []
+        self.best_result = None
         
         try:
             self.read_stats()
@@ -39,7 +43,7 @@ class Instance:
                 self.mean_order_size = data["mean_order_size"]
                 self.mean_items_per_aisle = data["mean_items_per_aisle"]
                 self.mean_items_per_order = data["mean_items_per_order"]
-            print(f"Stats loaded from {self.stats_file}")
+            # print(f"Stats loaded from {self.stats_file}")
 
         except:
             raise FileNotFoundError("Stats file not found.")
@@ -105,33 +109,62 @@ class Instance:
         with open(file_path, "w") as f:
             json.dump(data, f, indent=4)
         
-        print(f"Stats saved to {file_path}")
+        # print(f"Stats saved to {file_path}")
 
     @property
     def stats_file(self):
         return os.path.join("stats", self.dataset, f"instance_{self.id}.json")
         
 
-def display_stats_table(instances):
-    rows = []
+class Experiment:
 
-    for inst in instances:
-        rows.append({
-            "instance": f"{inst.dataset}/{inst.id}",
-            "#aisles": inst.aisles_count,
-            "#orders": inst.orders_count,
-            "#items": inst.items_count,
-            "LB": inst.wave_size_lb,
-            "UB": inst.wave_size_ub,
-            "mean_aisle_capacity": inst.mean_aisle_capacity,
-            "mean_order_size": inst.mean_order_size,
-            "mean_items_per_aisle": inst.mean_items_per_aisle,
-            "mean_items_per_order": inst.mean_items_per_order,
-        })
+    default_parameters = {
+        "generations" : 50,
+        "population_size" : 60,
+        "crossover_rate" : 0.9,
+        "mutation_rate" : 0.001,
+        "initial_seed" : 12345,
+        "iterations" : 1
+    }
+    
+    checker = WaveOrderPicking()
 
-    df = pd.DataFrame(rows)
-    df = df.round(2)
+    def __init__(self, batch_name, instance, algorithm, run_id, feasibility=None, objective_value=None, execution_time=None):
+        
+        self.batch_name = batch_name
+        self.instance = instance
+        
+        self.algorithm = algorithm # "greedy" / "gGA" / "ssGA"
+        self.parameters = {
+            **Experiment.default_parameters
+        }
+        
+        self.run_id =run_id
 
-    return df
+        self.feasibility = feasibility
+        self.objective_value = objective_value
+        self.execution_time = execution_time
+    
+    def set_param(self, param_name, param_value):
+        self.parameters[param_name] = param_value
+
+    def run():
+        pass # TODO
+
+    def compute_result(self):
+        result = Experiment.checker.check_result(self.instance.input_file, self.solution_file)
+        self.feasibility = result["is_feasible"]
+        if self.feasibility:
+            self.objective_value = result["objective_value"]
+
+    @property
+    def solution_file(self):
+        return os.path.join("experiments", self.batch_name, f"{self.instance.dataset}_{self.instance.id}", f"{self.algorithm}_{self.parameters_string()}_run{self.run_id}.txt")
+    
+    def __str__(self):
+        return f"Experiment(batch: {self.batch_name}, instance: {self.instance.dataset}/{self.instance.id}, algorithm: {self.algorithm}, run: {self.run_id}, feasibility: {self.feasibility}, objective_value: {self.objective_value}, execution_time: {self.execution_time})"
+    
+    def parameters_string(self):
+        return f"gen{self.parameters['generations']}_pop{self.parameters['population_size']}_cr{self.parameters['crossover_rate']}_mr{self.parameters['mutation_rate']}"
     
 
