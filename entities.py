@@ -162,7 +162,10 @@ class Experiment:
     
     @property
     def seed(self):
-        return self.parameters["initial_seed"] + self.run_id
+        s = self.run_id
+        if not self.parameters is None and "initial_seed" in self.parameters:
+            s += self.parameters["initial_seed"]
+        return s
 
 
     def run(self, show_output=False):
@@ -188,15 +191,6 @@ class Experiment:
 
     def run_cmd(self, show_output=False):
 
-        # Build parameter string for the Java solver
-        # Example: params:629/1/10/60/0.9
-        params = f"params:{self.seed}/" \
-                 f"{self.parameters['iterations']}/" \
-                 f"{self.parameters['generations']}/" \
-                 f"{self.parameters['population_size']}/" \
-                 f"{self.parameters['crossover_rate']}/" \
-                 f"{self.parameters['mutation_rate']}"
-
         # Build algorithm mode
         # "gGA" → "genetic generational"
         # "ssGA" → "genetic steadyState"
@@ -206,13 +200,24 @@ class Experiment:
         # Build full command
         cmd = [
             "java", "-jar", "target/ChallengeSBPO2025-1.0.jar",
-            self.instance.input_file, *algo_args, params, f"output:{self.solution_file}"
+            self.instance.input_file, *algo_args, f"output:{self.solution_file}"
         ]
 
+        # Build parameter string for the Java solver
+        # Example: params:629/1/10/60/0.9
+        if not self.parameters is None:
+            params = f"params:{self.seed}/" \
+                 f"{self.parameters['iterations']}/" \
+                 f"{self.parameters['generations']}/" \
+                 f"{self.parameters['population_size']}/" \
+                 f"{self.parameters['crossover_rate']}/" \
+                 f"{self.parameters['mutation_rate']}"
+            cmd.append(params)
+            if self.encoding == "binary": cmd.append("binaryEncoding")
+            if self.crossover_type == "default": cmd.append("defaultCrossover")
+            if self.start == "random": cmd.append("randomStart")
+
         if show_output: cmd.append("showOutput")
-        if self.encoding == "binary": cmd.append("binaryEncoding")
-        if self.crossover_type == "default": cmd.append("defaultCrossover")
-        if self.start == "random": cmd.append("randomStart")
 
         return cmd
         
@@ -277,6 +282,8 @@ class Experiment:
     
     def parameters_string(self):
         string = ""
+        if self.parameters is None:
+            return ""
         if self.encoding is not None:
             string += f"{self.encoding}_"
         if self.crossover_type is not None:
@@ -289,45 +296,40 @@ class Experiment:
 
 
 
-# datasets = {"a": {}, "b": {}, "x": {}}
-# instances = {}
+datasets = {"a": {}, "b": {}, "x": {}}
+instances = {}
 
 
-# for dataset in ["a", "b", "x"]:
-#     for file in os.listdir(f"datasets/{dataset}"):
-#         instanceId = file.split("_")[1].split(".")[0]
-#         instance = Instance(dataset, instanceId, f"datasets/{dataset}/{file}")
-#         instances[f"{dataset}/{instanceId}"] = instance
-#         datasets[dataset][instanceId] = instance
+for dataset in ["a", "b", "x"]:
+    for file in os.listdir(f"datasets/{dataset}"):
+        instanceId = file.split("_")[1].split(".")[0]
+        instance = Instance(dataset, instanceId, f"datasets/{dataset}/{file}")
+        instances[f"{dataset}/{instanceId}"] = instance
+        datasets[dataset][instanceId] = instance
 
-# experiment_instances = {
-#     "a": [i for i in datasets["a"].values() if i.id in ["0001", "0004", "0009", "0017", "0019"]],
-#     "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0007", "0009"]],
-#     "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0007", "0008"]]
-# }
-
-
-# experiments = {}
-# independent_runs = 10
+experiment_instances = {
+    "a": [i for i in datasets["a"].values() if i.id in ["0001", "0004", "0009", "0017", "0019"]],
+    "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0007", "0009"]],
+    "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0007"]]
+}
 
 
-# batch_name = "parameter_tuning"
-# algorithm = "ssGA"
+experiments = {}
+  
+batch_name = "evaluation"
+algorithm = "ssGA"
 
-# cx_probs = [0.9, 1.0]
-# mut_probs = [0.01, 0.001, 0.0001]
-# pop_sizes = [40, 60, 80]
+cx_prob = 1.0 # ajustar
+mut_prob = 0.001
+pop_size = 80
+independent_runs = 30
 
-# experiments[batch_name] = []
+experiments[batch_name] = []
 
-# for instance in [i for i in experiment_instances["b"] if i.id in ["0003", "0007", "0009"]]:
-#     for c in cx_probs:
-#         for m in mut_probs:
-#             for p in pop_sizes:
-#                 for run in range(independent_runs):
-#                     exp = Experiment(batch_name, instance, algorithm, run)
-#                     exp.set_param("crossover_rate", c)
-#                     exp.set_param("mutation_rate", m)
-#                     exp.set_param("population_size", p)
-#                     experiments[batch_name].append(exp)
-    
+for instance in experiment_instances["x"]: # 1, 3, 7, 8
+    for run in range(independent_runs):
+        exp = Experiment(batch_name, instance, algorithm, run)
+        exp.set_param("crossover_rate", cx_prob)
+        exp.set_param("mutation_rate", mut_prob)
+        exp.set_param("population_size", pop_size)
+        experiments[batch_name].append(exp)
