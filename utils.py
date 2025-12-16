@@ -631,6 +631,131 @@ def display_kruskal_exp_2(experiments, group_by=["pop_size", "cx_prob", "mut_pro
 
     return pd.DataFrame(results)
 
+def display_evaluation_experiment(experiments):
+
+    rows = []
+
+    for exp in experiments:
+        rows.append({
+            "instance": f"{exp.instance.dataset}/{exp.instance.id}",
+            "run": exp.run_id,
+            "ssGA_result": exp.objective_value,
+            "greedy_result": exp.instance.greedy_result,
+            "best_result": exp.instance.best_result,
+            "execution_time": exp.execution_time,
+        })
+
+    df = pd.DataFrame(rows)
+
+    summary = (
+        df.groupby(["instance"])
+        .agg(
+            mean_objective=("ssGA_result", "mean"),
+            max_objective=("ssGA_result", "max"),
+            greedy_result=("greedy_result", "first"),
+            best_result=("best_result", "first"),
+            std_objective=("ssGA_result", "std"),
+            mean_time=("execution_time", "mean"),
+            std_time=("execution_time", "std"),
+        )
+        .reset_index()
+    )
+
+    # columnas para p-values del test de Shapiro–Wilk
+    summary["obj_shapiro_p"] = None
+    summary["time_shapiro_p"] = None
+
+    # aplicar Shapiro–Wilk por instancia
+    for idx, row in summary.iterrows():
+        instance = row["instance"]
+
+        obj_vals = df[df["instance"] == instance]["ssGA_result"].values
+        time_vals = df[df["instance"] == instance]["execution_time"].values
+
+        if len(obj_vals) >= 3:
+            _, obj_p = shapiro(obj_vals)
+            _, time_p = shapiro(time_vals)
+        else:
+            obj_p = None
+            time_p = None
+
+        summary.at[idx, "obj_shapiro_p"] = obj_p
+        summary.at[idx, "time_shapiro_p"] = time_p
+
+    return summary.round(4)
 
 
-    
+
+def wilcoxon_greedy_vs_ssga(experiments):
+
+    rows = []
+
+    for exp in experiments:
+        rows.append({
+            "instance": f"{exp.instance.dataset}/{exp.instance.id}",
+            "run": exp.run_id,
+            "ssGA_result": exp.objective_value,
+            "greedy_result": exp.instance.greedy_result,
+        })
+
+    df = pd.DataFrame(rows)
+
+    results = []
+
+    for instance, group in df.groupby("instance"):
+
+        ssga_vals = group["ssGA_result"].values
+        greedy_val = group["greedy_result"].iloc[0]
+
+        # vector constante del greedy
+        greedy_vec = [greedy_val] * len(ssga_vals)
+
+        # Wilcoxon requiere al menos 1 par
+        if len(ssga_vals) >= 1:
+            _, p = wilcoxon(ssga_vals, greedy_vec)
+        else:
+            p = None
+
+        results.append({
+            "instance": instance,
+            "greedy": greedy_val,
+            "ssga_mean": ssga_vals.mean(),
+            "ssga_max": ssga_vals.max(),
+            "wilcoxon_greedy_vs_all": p
+        })
+
+    return pd.DataFrame(results)
+
+
+
+def display_comparison_greedy_best_ssga(experiments):
+
+    rows = []
+
+    for exp in experiments:
+        rows.append({
+            "instance": f"{exp.instance.dataset}/{exp.instance.id}",
+            "run": exp.run_id,
+            "ssGA_result": exp.objective_value,
+            "greedy_result": exp.instance.greedy_result,
+            "best_result": exp.instance.best_result,
+        })
+
+    df = pd.DataFrame(rows)
+
+    summary = (
+        df.groupby(["instance"])
+        .agg(
+            mean_objective=("ssGA_result", "mean"),
+            greedy_result=("greedy_result", "first"),
+            best_result=("best_result", "first"),
+        )
+        .reset_index()
+    )
+
+
+    summary["improvement_over_greedy (%)"] = (summary["mean_objective"]/summary["greedy_result"] - 1) * 100.0
+    summary["GAP_to_best_result (%)"] = (summary["best_result"]/summary["mean_objective"] - 1) * 100.0
+
+
+    return summary.round(4)
