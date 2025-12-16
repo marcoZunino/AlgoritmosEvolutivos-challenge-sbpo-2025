@@ -292,47 +292,6 @@ class Experiment:
             string += f"{self.start}_"
         string += f"gen{self.parameters['generations']}_pop{self.parameters['population_size']}_cr{self.parameters['crossover_rate']}_mr{self.parameters['mutation_rate']}"
         return string
-    
-
-
-
-datasets = {"a": {}, "b": {}, "x": {}}
-instances = {}
-
-
-for dataset in ["a", "b", "x"]:
-    for file in os.listdir(f"datasets/{dataset}"):
-        instanceId = file.split("_")[1].split(".")[0]
-        instance = Instance(dataset, instanceId, f"datasets/{dataset}/{file}")
-        instances[f"{dataset}/{instanceId}"] = instance
-        datasets[dataset][instanceId] = instance
-
-experiment_instances = {
-    "a": [i for i in datasets["a"].values() if i.id in ["0001", "0004", "0009", "0017", "0019"]],
-    "b": [i for i in datasets["b"].values() if i.id in ["0001", "0003", "0007", "0009"]],
-    "x": [i for i in datasets["x"].values() if i.id in ["0001", "0003", "0007"]]
-}
-
-
-experiments = {}
-  
-batch_name = "evaluation"
-algorithm = "ssGA"
-
-cx_prob = 1.0 # ajustar
-mut_prob = 0.001
-pop_size = 80
-independent_runs = 30
-
-experiments[batch_name] = []
-
-for instance in experiment_instances["x"]: # 1, 3, 7, 8
-    for run in range(independent_runs):
-        exp = Experiment(batch_name, instance, algorithm, run)
-        exp.set_param("crossover_rate", cx_prob)
-        exp.set_param("mutation_rate", mut_prob)
-        exp.set_param("population_size", pop_size)
-        experiments[batch_name].append(exp)
 
 
 

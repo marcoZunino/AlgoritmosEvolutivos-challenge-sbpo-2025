@@ -31,14 +31,6 @@ Two encoding strategies:
    - `WaveSolution.java` - Custom solution type
    - `GeneticAlgorithmRunner.java` - Runner with custom operators
 
-### 🧪 Experimentation Framework
-
-- **experiments/ExperimentsFactory.java** - Factory for creating algorithm configurations:
-  - Enums: `EncodingType`, `CrossoverType`, `StartType`, `AlgorithmType`
-  - `algorithmBuilder()` - Configures GA variants (generational/steady-state)
-
-- **experiments/ParametersConfiguration.java** - Parameter tuning experiments
-
 ### 🐍 Python Analysis Layer
 
 - **`entities.py`** - Core Python classes:
@@ -46,10 +38,7 @@ Two encoding strategies:
   - `Experiment` - Manages experiment execution and result collection
 
 - **`utils.py`** - Analysis utilities:
-  - `display_experiment_1_1()` - Encoding comparison
-  - `display_experiment_1_2()` - Crossover type comparison
-  - `display_experiment_2()` - Parameter tuning results
-  - `plot_evolution_start_conf()` - Visualization
+  - Data comparison, visualization, and statistical tests
 
 - **`checker.py`** - `WaveOrderPicking` class for solution validation:
   - `is_solution_feasible()` - Constraint checking
@@ -59,18 +48,15 @@ Two encoding strategies:
 
 ### 📊 Output Structure
 
-- **`output`** - Solution files by algorithm/dataset
 - **`experiments`** - Experimental results organized by batch:
-  - `solutions/` - Raw solution files
-  - `results/` - JSON files with feasibility, objective values, execution times
+  - `.../solutions/` - Raw solution files
+  - `.../results/` - JSON files with feasibility, objective values, execution times
 - **`stats`** - Precomputed instance statistics (JSON)
 - **`best_solutions`** - Best known solutions (`best_solutions/best_objectives.csv`)
 
 ## Key Files
 
 - **`pom.xml`** - Maven build configuration (jMetal dependency)
-- **`requirements.txt`** - Python dependencies
-- **running_X.py** - Scripts for batch experiment execution
 
 ## Execution Flow
 

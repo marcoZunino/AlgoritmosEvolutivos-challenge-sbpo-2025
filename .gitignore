@@ -4,10 +4,12 @@
 datasets/out
 stats
 experimentResults
-output/genetic
+output
 jMetal.log
 settings.json
 checker.cpython-310.pyc
 checker.cpython-312.pyc
 entities.cpython-310.pyc
 utils.cpython-310.pyc
+utils.cpython-312.pyc
+figures
